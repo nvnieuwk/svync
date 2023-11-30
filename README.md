@@ -1,2 +1,2 @@
 # svync
-A tool to standardize VCF files from structural variant callers
+⚠️ This tool is still under development, please check back in the future ⚠️
