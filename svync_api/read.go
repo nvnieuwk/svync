@@ -42,9 +42,7 @@ func readBgzip(input *os.File) VCF {
 	defer bgReader.Close()
 
 	vcf := VCF{}
-	var n int
 	for {
-		n++
 		b, _, err := readLine(bgReader)
 		if err != nil {
 			if err == io.EOF {
