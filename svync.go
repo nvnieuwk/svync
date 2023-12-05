@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/nvnieuwk/svync/svync_api"
 	cli "github.com/urfave/cli/v2"
 )
 
@@ -35,9 +36,9 @@ func main() {
 				Category: "Required",
 			},
 		},
-		Action: func(c *cli.Context) error {
-			logger := log.New(os.Stderr, "", 0)
-			logger.Print("Hello World!")
+		Action: func(Cctx *cli.Context) error {
+			// logger := log.New(os.Stderr, "", 0)
+			svync_api.Read(Cctx)
 			return nil
 		},
 	}
