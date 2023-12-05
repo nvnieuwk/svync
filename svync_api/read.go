@@ -98,17 +98,24 @@ func readPlain(input *os.File) VCF {
 func (vcf *VCF) Parse(line string) {
 	// logger := log.New(os.Stderr, "", 0)
 
-	if strings.HasPrefix(line, "##") {
+	if strings.HasPrefix(line, "#") {
 		vcf.Header.Parse(line)
 	}
 }
 
 func (header *Header) Parse(line string) {
+	if strings.HasPrefix(line, "#CHROM") {
+		header.Samples = strings.Split(line, "\t")[9:]
+		return
+	}
+
 	r := regexp.MustCompile(`^##(?P<headerType>[^=]*)=<(?P<content>.*)>$`)
 	matches := r.FindStringSubmatch(line)
 
-	header.Other = []string{}
 	if len(matches) == 0 {
+		if header.Other == nil {
+			header.Other = []string{}
+		}
 		header.Other = append(header.Other, line)
 		return
 	}

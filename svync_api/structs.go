@@ -6,12 +6,13 @@ type VCF struct {
 }
 
 type Header struct {
-	Info   map[string]HeaderLineIdNumberTypeDescription
-	Format map[string]HeaderLineIdNumberTypeDescription
-	Alt    map[string]HeaderLineIdDescription
-	Filter map[string]HeaderLineIdDescription
-	Contig map[string]HeaderLineIdLength
-	Other  []string
+	Info    map[string]HeaderLineIdNumberTypeDescription
+	Format  map[string]HeaderLineIdNumberTypeDescription
+	Alt     map[string]HeaderLineIdDescription
+	Filter  map[string]HeaderLineIdDescription
+	Contig  map[string]HeaderLineIdLength
+	Other   []string
+	Samples []string
 }
 
 type HeaderLineIdDescription struct {
