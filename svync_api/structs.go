@@ -2,7 +2,7 @@ package svync_api
 
 type VCF struct {
 	Header   Header
-	Variants map[string]VariantMates
+	Variants map[string]Variant
 }
 
 type Header struct {
@@ -32,21 +32,18 @@ type HeaderLineIdLength struct {
 	Length int64
 }
 
-type VariantMates struct {
-	Mate1 Variant
-	Mate2 Variant
-}
-
 type Variant struct {
 	Chromosome string
-	Start      int64
-	End        int64
+	Pos        int64
+	Id         string
 	Ref        string
 	Alt        string
 	Qual       string
 	Filter     string
-	Info       map[string]string
+	Header     *Header
+	Info       map[string][]string
 	Format     map[string]VariantFormat
+	Mates      map[string]*Variant
 }
 
 type VariantFormat struct {

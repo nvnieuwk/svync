@@ -7,13 +7,14 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/biogo/hts/bgzf"
 	cli "github.com/urfave/cli/v2"
 )
 
-func Read(Cctx *cli.Context) {
+func Read(Cctx *cli.Context) *VCF {
 	logger := log.New(os.Stderr, "", 0)
 
 	file := Cctx.String("input")
@@ -23,16 +24,30 @@ func Read(Cctx *cli.Context) {
 		logger.Fatal(err)
 	}
 
-	vcf := VCF{}
+	vcf := NewVCF()
 	if strings.HasSuffix(file, ".gz") {
-		vcf = readBgzip(openFile)
+		vcf.readBgzip(openFile)
 	} else {
-		vcf = readPlain(openFile)
+		vcf.readPlain(openFile)
 	}
-	logger.Println(vcf)
+
+	return vcf
 }
 
-func readBgzip(input *os.File) VCF {
+func NewVCF() *VCF {
+	return &VCF{
+		Header: Header{
+			Info:   map[string]HeaderLineIdNumberTypeDescription{},
+			Format: map[string]HeaderLineIdNumberTypeDescription{},
+			Alt:    map[string]HeaderLineIdDescription{},
+			Filter: map[string]HeaderLineIdDescription{},
+			Contig: map[string]HeaderLineIdLength{},
+		},
+		Variants: map[string]Variant{},
+	}
+}
+
+func (vcf *VCF) readBgzip(input *os.File) {
 	logger := log.New(os.Stderr, "", 0)
 
 	bgReader, err := bgzf.NewReader(input, 1)
@@ -41,7 +56,6 @@ func readBgzip(input *os.File) VCF {
 	}
 	defer bgReader.Close()
 
-	vcf := VCF{}
 	for {
 		b, _, err := readLine(bgReader)
 		if err != nil {
@@ -51,10 +65,8 @@ func readBgzip(input *os.File) VCF {
 			logger.Fatal(string(b[:]))
 		}
 
-		vcf.Parse(string(bytes.TrimSpace(b[:])))
+		vcf.parse(string(bytes.TrimSpace(b[:])))
 	}
-
-	return vcf
 
 }
 
@@ -79,31 +91,88 @@ func readLine(r *bgzf.Reader) ([]byte, bgzf.Chunk, error) {
 	return data, chunk, err
 }
 
-func readPlain(input *os.File) VCF {
+func (vcf *VCF) readPlain(input *os.File) {
 	logger := log.New(os.Stderr, "", 0)
 
-	vcf := VCF{}
 	scanner := bufio.NewScanner(input)
+	const maxCapacity = 8 * 1000000 // 8 MB
+	scanner.Buffer(make([]byte, maxCapacity), maxCapacity)
 	for scanner.Scan() {
-		vcf.Parse(scanner.Text())
+		vcf.parse(scanner.Text())
 	}
 
 	if err := scanner.Err(); err != nil {
 		logger.Fatal(err)
 	}
 
-	return vcf
 }
 
-func (vcf *VCF) Parse(line string) {
+func (vcf *VCF) parse(line string) {
 	// logger := log.New(os.Stderr, "", 0)
 
 	if strings.HasPrefix(line, "#") {
-		vcf.Header.Parse(line)
+		vcf.Header.parse(line)
+	} else {
+		id := strings.Split(line, "\t")[2]
+		variant := &Variant{}
+		variant.Header = &vcf.Header
+		variant.parse(line)
+		vcf.Variants[id] = *variant
+		// logger.Println(vcf.Variants[id])
 	}
 }
 
-func (header *Header) Parse(line string) {
+func (variant *Variant) parse(line string) {
+	logger := log.New(os.Stderr, "", 0)
+
+	err := error(nil)
+	data := strings.Split(line, "\t")
+	variant.Chromosome = data[0]
+	variant.Pos, err = strconv.ParseInt(data[1], 0, 64)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	variant.Id = data[2]
+	variant.Ref = data[3]
+	variant.Alt = data[4]
+	variant.Qual = data[5]
+	variant.Filter = data[6]
+	variant.Info = map[string][]string{}
+	info := strings.Split(data[7], ";")
+
+	for _, i := range info {
+		split := strings.Split(i, "=")
+		field := split[0]
+		headerLine := variant.Header.Info[field]
+		if headerLine == (HeaderLineIdNumberTypeDescription{}) {
+			logger.Printf("Field INFO/%s not found in header, defaulting to Type 'String' and Number '1'", field)
+			headerLine = HeaderLineIdNumberTypeDescription{
+				Id:          field,
+				Number:      "1",
+				Type:        "String",
+				Description: "",
+			}
+		}
+
+		if headerLine.Type == "Flag" {
+			variant.Info[field] = []string{}
+			continue
+		}
+
+		logger.Print(headerLine.Number)
+		infoNumber, err := strconv.ParseInt(headerLine.Number, 0, 64)
+		if err != nil {
+			infoNumber = -1
+		}
+		variant.Info[field] = strings.SplitN(split[1], ",", int(infoNumber))
+		logger.Print(variant.Info[field])
+	}
+
+	variant.Format = map[string]VariantFormat{}
+
+}
+
+func (header *Header) parse(line string) {
 	if strings.HasPrefix(line, "#CHROM") {
 		header.Samples = strings.Split(line, "\t")[9:]
 		return
@@ -126,9 +195,6 @@ func (header *Header) Parse(line string) {
 
 	switch headerType {
 	case "INFO":
-		if header.Info == nil {
-			header.Info = map[string]HeaderLineIdNumberTypeDescription{}
-		}
 		header.Info[contentMap["id"]] = HeaderLineIdNumberTypeDescription{
 			Id:          contentMap["id"],
 			Number:      contentMap["number"],
@@ -136,9 +202,6 @@ func (header *Header) Parse(line string) {
 			Description: contentMap["description"],
 		}
 	case "FORMAT":
-		if header.Format == nil {
-			header.Format = map[string]HeaderLineIdNumberTypeDescription{}
-		}
 		header.Format[contentMap["id"]] = HeaderLineIdNumberTypeDescription{
 			Id:          contentMap["id"],
 			Number:      contentMap["number"],
@@ -146,25 +209,16 @@ func (header *Header) Parse(line string) {
 			Description: contentMap["description"],
 		}
 	case "ALT":
-		if header.Alt == nil {
-			header.Alt = map[string]HeaderLineIdDescription{}
-		}
 		header.Alt[contentMap["id"]] = HeaderLineIdDescription{
 			Id:          contentMap["id"],
 			Description: contentMap["description"],
 		}
 	case "FILTER":
-		if header.Filter == nil {
-			header.Filter = map[string]HeaderLineIdDescription{}
-		}
 		header.Filter[contentMap["id"]] = HeaderLineIdDescription{
 			Id:          contentMap["id"],
 			Description: contentMap["description"],
 		}
 	case "contig":
-		if header.Contig == nil {
-			header.Contig = map[string]HeaderLineIdLength{}
-		}
 		header.Contig[contentMap["id"]] = HeaderLineIdLength{
 			Id:     contentMap["id"],
 			Length: 0,
