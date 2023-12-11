@@ -137,39 +137,58 @@ func (variant *Variant) parse(line string) {
 	variant.Alt = data[4]
 	variant.Qual = data[5]
 	variant.Filter = data[6]
+
 	variant.Info = map[string][]string{}
 	info := strings.Split(data[7], ";")
-
 	for _, i := range info {
 		split := strings.Split(i, "=")
 		field := split[0]
-		headerLine := variant.Header.Info[field]
-		if headerLine == (HeaderLineIdNumberTypeDescription{}) {
-			logger.Printf("Field INFO/%s not found in header, defaulting to Type 'String' and Number '1'", field)
-			headerLine = HeaderLineIdNumberTypeDescription{
-				Id:          field,
-				Number:      "1",
-				Type:        "String",
-				Description: "",
-			}
+		value := ""
+		if len(split) > 1 {
+			value = split[1]
 		}
-
-		if headerLine.Type == "Flag" {
-			variant.Info[field] = []string{}
-			continue
-		}
-
-		logger.Print(headerLine.Number)
-		infoNumber, err := strconv.ParseInt(headerLine.Number, 0, 64)
-		if err != nil {
-			infoNumber = -1
-		}
-		variant.Info[field] = strings.SplitN(split[1], ",", int(infoNumber))
-		logger.Print(variant.Info[field])
+		variant.Info[field] = parseInfoFormat(field, value, variant.Header.Info)
 	}
 
 	variant.Format = map[string]VariantFormat{}
+	formatHeaders := strings.Split(data[8], ":")
+	formatValues := data[9:]
+	for index, value := range formatValues {
+		sample := variant.Header.Samples[index]
+		variant.Format[sample] = VariantFormat{
+			Sample:  sample,
+			Content: map[string][]string{},
+		}
+		for idx, val := range strings.Split(value, ":") {
+			header := formatHeaders[idx]
+			variant.Format[sample].Content[header] = parseInfoFormat(header, val, variant.Header.Format)
+		}
+	}
 
+}
+
+func parseInfoFormat(header string, value string, infoFormatLines map[string]HeaderLineIdNumberTypeDescription) []string {
+	logger := log.New(os.Stderr, "", 0)
+	headerLine := infoFormatLines[header]
+	if headerLine == (HeaderLineIdNumberTypeDescription{}) {
+		logger.Printf("Field %s not found in header, defaulting to Type 'String' and Number '1'", header)
+		headerLine = HeaderLineIdNumberTypeDescription{
+			Id:          header,
+			Number:      "1",
+			Type:        "String",
+			Description: "",
+		}
+	}
+
+	if headerLine.Type == "Flag" {
+		return []string{}
+	}
+
+	infoNumber, err := strconv.ParseInt(headerLine.Number, 0, 64)
+	if err != nil {
+		infoNumber = -1
+	}
+	return strings.SplitN(value, ",", int(infoNumber))
 }
 
 func (header *Header) parse(line string) {

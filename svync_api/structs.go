@@ -43,10 +43,9 @@ type Variant struct {
 	Header     *Header
 	Info       map[string][]string
 	Format     map[string]VariantFormat
-	Mates      map[string]*Variant
 }
 
 type VariantFormat struct {
-	Sample string
-	Format map[string]string
+	Sample  string
+	Content map[string][]string
 }
