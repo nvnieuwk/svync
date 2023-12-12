@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -37,9 +38,10 @@ func main() {
 			},
 		},
 		Action: func(Cctx *cli.Context) error {
-			config := svync_api.ReadConfig(Cctx) // Outputs Config
-			vcf := svync_api.ReadVcf(Cctx)       // Outputs VCF
-			vcf.Standardize(config, Cctx)        // Standardize VCF and write to output file
+			config := svync_api.ReadConfig(Cctx)
+			vcf := svync_api.ReadVcf(Cctx)
+			fmt.Print(config)
+			vcf.StandardizeAndOutput(config, Cctx) // Standardize VCF and write to output file
 			return nil
 		},
 	}

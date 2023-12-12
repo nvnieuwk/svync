@@ -14,6 +14,7 @@ import (
 	cli "github.com/urfave/cli/v2"
 )
 
+// Read the VCF file and return it as a VCF struct
 func ReadVcf(Cctx *cli.Context) *VCF {
 	logger := log.New(os.Stderr, "", 0)
 
@@ -34,6 +35,7 @@ func ReadVcf(Cctx *cli.Context) *VCF {
 	return vcf
 }
 
+// Initialize a new VCF
 func newVCF() *VCF {
 	return &VCF{
 		Header: Header{
@@ -47,6 +49,7 @@ func newVCF() *VCF {
 	}
 }
 
+// Read the VCF file in bgzip format and convert it to a VCF struct
 func (vcf *VCF) readBgzip(input *os.File) {
 	logger := log.New(os.Stderr, "", 0)
 
@@ -57,7 +60,7 @@ func (vcf *VCF) readBgzip(input *os.File) {
 	defer bgReader.Close()
 
 	for {
-		b, _, err := readLine(bgReader)
+		b, _, err := readBgzipLine(bgReader)
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -70,7 +73,8 @@ func (vcf *VCF) readBgzip(input *os.File) {
 
 }
 
-func readLine(r *bgzf.Reader) ([]byte, bgzf.Chunk, error) {
+// readBgzipLine reads a line from a bgzip file
+func readBgzipLine(r *bgzf.Reader) ([]byte, bgzf.Chunk, error) {
 	tx := r.Begin()
 	var (
 		data []byte
@@ -91,6 +95,7 @@ func readLine(r *bgzf.Reader) ([]byte, bgzf.Chunk, error) {
 	return data, chunk, err
 }
 
+// Read the VCF file in plain text format and convert it to a VCF struct
 func (vcf *VCF) readPlain(input *os.File) {
 	logger := log.New(os.Stderr, "", 0)
 
@@ -107,9 +112,8 @@ func (vcf *VCF) readPlain(input *os.File) {
 
 }
 
+// Parse the line and add it to the VCF struct
 func (vcf *VCF) parse(line string) {
-	// logger := log.New(os.Stderr, "", 0)
-
 	if strings.HasPrefix(line, "#") {
 		vcf.Header.parse(line)
 	} else {
@@ -122,6 +126,7 @@ func (vcf *VCF) parse(line string) {
 	}
 }
 
+// Parse the line and add it to the Variant struct
 func (variant *Variant) parse(line string) {
 	logger := log.New(os.Stderr, "", 0)
 
@@ -167,6 +172,7 @@ func (variant *Variant) parse(line string) {
 
 }
 
+// Parse the value of the INFO or FORMAT field and return it as a slice of strings
 func parseInfoFormat(header string, value string, infoFormatLines map[string]HeaderLineIdNumberTypeDescription) []string {
 	logger := log.New(os.Stderr, "", 0)
 	headerLine := infoFormatLines[header]
@@ -191,6 +197,7 @@ func parseInfoFormat(header string, value string, infoFormatLines map[string]Hea
 	return strings.SplitN(value, ",", int(infoNumber))
 }
 
+// Parse the header line and add it to the Header struct
 func (header *Header) parse(line string) {
 	if strings.HasPrefix(line, "#CHROM") {
 		header.Samples = strings.Split(line, "\t")[9:]

@@ -1,7 +1,7 @@
 # Test config for Delly SV caller
 id: "id"
 info:
-  caller:
+  CALLER:
     value: delly
     description: SV caller
     number: 1
