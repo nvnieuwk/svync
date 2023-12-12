@@ -245,9 +245,13 @@ func (header *Header) parse(line string) {
 			Description: contentMap["description"],
 		}
 	case "contig":
+		length, err := strconv.ParseInt(contentMap["length"], 0, 64)
+		if err != nil {
+			log.Fatalf("Could not convert contig length to an integer: %v", err)
+		}
 		header.Contig[contentMap["id"]] = HeaderLineIdLength{
 			Id:     contentMap["id"],
-			Length: 0,
+			Length: length,
 		}
 	}
 

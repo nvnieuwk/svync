@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -16,6 +15,12 @@ func main() {
 		HideHelpCommand: true,
 		Version:         "0.1.0dev",
 		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:     "nodate",
+				Aliases:  []string{"nd"},
+				Usage:    "Don't add the current date to the output VCF header",
+				Category: "Optional",
+			},
 			&cli.StringFlag{
 				Name:     "output",
 				Aliases:  []string{"o"},
@@ -40,7 +45,6 @@ func main() {
 		Action: func(Cctx *cli.Context) error {
 			config := svync_api.ReadConfig(Cctx)
 			vcf := svync_api.ReadVcf(Cctx)
-			fmt.Print(config)
 			vcf.StandardizeAndOutput(config, Cctx) // Standardize VCF and write to output file
 			return nil
 		},
