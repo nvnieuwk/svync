@@ -9,6 +9,8 @@ import (
 	"time"
 
 	cli "github.com/urfave/cli/v2"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // Standardize the VCF file and write it to the output file
@@ -55,14 +57,16 @@ func (vcf *VCF) StandardizeAndOutput(config *Config, Cctx *cli.Context) {
 	// Write the info fields of the config
 	for name, info := range config.Info {
 		description := descriptionRegex.FindStringSubmatch(info.Description)[1]
-		infoLine := fmt.Sprintf("##INFO=<ID=%s,Number=%s,Type=%s,Description=\"%s\">", name, info.Number, info.Type, description)
+		infoType := cases.Title(language.English, cases.Compact).String(strings.ToLower(info.Type))
+		infoLine := fmt.Sprintf("##INFO=<ID=%s,Number=%s,Type=%s,Description=\"%s\">", name, info.Number, infoType, description)
 		writeLine(infoLine, file, stdout)
 	}
 
 	// Write the format fields of the config
 	for name, format := range config.Format {
 		description := descriptionRegex.FindStringSubmatch(format.Description)[1]
-		formatLine := fmt.Sprintf("##FORMAT=<ID=%s,Number=%s,Type=%s,Description=\"%s\">", name, format.Number, format.Type, description)
+		formatType := cases.Title(language.English, cases.Compact).String(strings.ToLower(format.Type))
+		formatLine := fmt.Sprintf("##FORMAT=<ID=%s,Number=%s,Type=%s,Description=\"%s\">", name, format.Number, formatType, description)
 		writeLine(formatLine, file, stdout)
 	}
 

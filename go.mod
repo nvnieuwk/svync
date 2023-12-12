@@ -5,6 +5,7 @@ go 1.21.4
 require (
 	github.com/biogo/hts v1.4.4
 	github.com/urfave/cli/v2 v2.25.7
+	golang.org/x/text v0.14.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
