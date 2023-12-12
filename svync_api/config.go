@@ -31,7 +31,7 @@ func (config *Config) defineMissing() {
 	// Info fields
 	if _, ok := config.Info["SVTYPE"]; !ok {
 		config.Info["SVTYPE"] = ConfigInput{
-			Value:       "INFO/SVTYPE",
+			Value:       "$INFO/SVTYPE",
 			Number:      "1",
 			Type:        "String",
 			Description: "Type of structural variant",
@@ -39,7 +39,7 @@ func (config *Config) defineMissing() {
 	}
 	if _, ok := config.Info["SVLEN"]; !ok {
 		config.Info["SVLEN"] = ConfigInput{
-			Value:       "INFO/SVLEN",
+			Value:       "$INFO/SVLEN",
 			Number:      "1",
 			Type:        "String",
 			Description: "Type of structural variant",
@@ -47,7 +47,7 @@ func (config *Config) defineMissing() {
 	}
 	if _, ok := config.Info["END"]; !ok {
 		config.Info["END"] = ConfigInput{
-			Value:       "INFO/END",
+			Value:       "$INFO/END",
 			Number:      "1",
 			Type:        "Integer",
 			Description: "End position of the variant described in this record",
@@ -55,7 +55,7 @@ func (config *Config) defineMissing() {
 	}
 	if _, ok := config.Info["IMPRECISE"]; !ok {
 		config.Info["IMPRECISE"] = ConfigInput{
-			Value:       "INFO/IMPRECISE",
+			Value:       "$INFO/IMPRECISE",
 			Number:      "0",
 			Type:        "Flag",
 			Description: "Imprecise structural variation",
@@ -65,7 +65,7 @@ func (config *Config) defineMissing() {
 	// Format fields
 	if _, ok := config.Format["GT"]; !ok {
 		config.Format["GT"] = ConfigInput{
-			Value:       "FORMAT/GT",
+			Value:       "$FORMAT/GT",
 			Number:      "1",
 			Type:        "String",
 			Description: "Genotype",

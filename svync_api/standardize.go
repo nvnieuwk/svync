@@ -87,7 +87,21 @@ func (vcf *VCF) StandardizeAndOutput(config *Config, Cctx *cli.Context) {
 
 // Standardize the variant and return it as a string
 func (variant *Variant) standardizeToString(config *Config, Cctx *cli.Context) string {
-	// standardizedVariant := newVariant()
+	standardizedVariant := newVariant()
+	standardizedVariant.Chromosome = variant.Chromosome
+	standardizedVariant.Pos = variant.Pos
+	standardizedVariant.Ref = variant.Ref
+	standardizedVariant.Alt = variant.Alt
+	standardizedVariant.Qual = variant.Qual
+	standardizedVariant.Filter = variant.Filter
+	standardizedVariant.Header = variant.Header
+	// TODO implement dynamic ID
+	standardizedVariant.Id = variant.Id
+
+	// Add info fields
+	for _, info := range config.Info {
+		ResolveInfo(info.Value, variant)
+	}
 	return "hello"
 
 }

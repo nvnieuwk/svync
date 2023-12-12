@@ -6,9 +6,19 @@ info:
     description: SV caller
     number: 1
     type: string
+  TEST:
+    value: $INFO/END,$INFO/CIEND
+    description: Test info field
+    number: 2
+    type: integer
+  SVLEN:
+    value: $INFO/END-$POS
+    description: SV length
+    number: 2
+    type: integer
 format:
   PE:
-    value: INFO/DR,INFO/DV
+    value: $FORMAT/DR,$FORMAT/DV
     description: Paired-read support for the ref and alt alleles in the order listed
     number: 2
     type: integer
