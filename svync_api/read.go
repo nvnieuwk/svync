@@ -14,7 +14,7 @@ import (
 	cli "github.com/urfave/cli/v2"
 )
 
-func Read(Cctx *cli.Context) *VCF {
+func ReadVcf(Cctx *cli.Context) *VCF {
 	logger := log.New(os.Stderr, "", 0)
 
 	file := Cctx.String("input")
@@ -24,7 +24,7 @@ func Read(Cctx *cli.Context) *VCF {
 		logger.Fatal(err)
 	}
 
-	vcf := NewVCF()
+	vcf := newVCF()
 	if strings.HasSuffix(file, ".gz") {
 		vcf.readBgzip(openFile)
 	} else {
@@ -34,7 +34,7 @@ func Read(Cctx *cli.Context) *VCF {
 	return vcf
 }
 
-func NewVCF() *VCF {
+func newVCF() *VCF {
 	return &VCF{
 		Header: Header{
 			Info:   map[string]HeaderLineIdNumberTypeDescription{},

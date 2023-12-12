@@ -1,5 +1,6 @@
 package svync_api
 
+// VCF structs
 type VCF struct {
 	Header   Header
 	Variants map[string]Variant
@@ -48,4 +49,22 @@ type Variant struct {
 type VariantFormat struct {
 	Sample  string
 	Content map[string][]string
+}
+
+//
+// Config structs
+//
+
+type Config struct {
+	Id     string
+	Info   MapConfigInput
+	Format MapConfigInput
+}
+
+type MapConfigInput map[string]ConfigInput
+type ConfigInput struct {
+	Value       string
+	Description string
+	Number      string
+	Type        string
 }

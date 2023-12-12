@@ -1,0 +1,14 @@
+# Test config for Delly SV caller
+id: "id"
+info:
+  caller:
+    value: delly
+    description: SV caller
+    number: 1
+    type: string
+format:
+  PE:
+    value: INFO/DR,INFO/DV
+    description: Paired-read support for the ref and alt alleles in the order listed
+    number: 2
+    type: integer

@@ -37,8 +37,9 @@ func main() {
 			},
 		},
 		Action: func(Cctx *cli.Context) error {
-			// logger := log.New(os.Stderr, "", 0)
-			svync_api.Read(Cctx)
+			config := svync_api.ReadConfig(Cctx) // Outputs Config
+			vcf := svync_api.ReadVcf(Cctx)       // Outputs VCF
+			vcf.Standardize(config, Cctx)        // Standardize VCF and write to output file
 			return nil
 		},
 	}
