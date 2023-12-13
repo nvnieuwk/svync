@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -77,20 +78,23 @@ func (vcf *VCF) StandardizeAndOutput(config *Config, Cctx *cli.Context) {
 	}
 
 	// Write the column headers
-	columnHeaders := []string{"#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO"}
+	columnHeaders := []string{"#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT"}
 	columnHeaders = append(columnHeaders, vcf.Header.Samples...)
 	writeLine(strings.Join(columnHeaders, "\t"), file, stdout)
 
 	// Write the variants
+	variantCount := 0
 	for _, variant := range vcf.Variants {
 		// Standardize the variant
-		line := variant.standardizeToString(config, Cctx)
+		line := variant.standardizeToString(config, Cctx, variantCount)
+		variantCount++
 		writeLine(line, file, stdout)
 	}
 }
 
 // Standardize the variant and return it as a string
-func (variant *Variant) standardizeToString(config *Config, Cctx *cli.Context) string {
+func (variant *Variant) standardizeToString(config *Config, Cctx *cli.Context, count int) string {
+	// logger := log.New(os.Stderr, "", 0)
 	standardizedVariant := newVariant()
 	standardizedVariant.Chromosome = variant.Chromosome
 	standardizedVariant.Pos = variant.Pos
@@ -99,15 +103,32 @@ func (variant *Variant) standardizeToString(config *Config, Cctx *cli.Context) s
 	standardizedVariant.Qual = variant.Qual
 	standardizedVariant.Filter = variant.Filter
 	standardizedVariant.Header = variant.Header
-	// TODO implement dynamic ID
-	standardizedVariant.Id = variant.Id
+	standardizedVariant.Id = fmt.Sprintf("%s_%v", ResolveValue(config.Id, variant, nil), count)
 
 	// Add info fields
-	for _, info := range config.Info {
-		ResolveInfo(info.Value, variant)
+	for name, info := range config.Info {
+		infoArray := []string{}
+		for _, split := range strings.Split(info.Value, ",") {
+			infoArray = append(infoArray, ResolveValue(split, variant, nil))
+		}
+		standardizedVariant.Info[name] = infoArray
 	}
-	return "hello"
 
+	// Add format fields
+	for sample, format := range variant.Format {
+		newFormat := newVariantFormat()
+		newFormat.Sample = sample
+
+		for name, formatConfig := range config.Format {
+			formatArray := []string{}
+			for _, split := range strings.Split(formatConfig.Value, ",") {
+				formatArray = append(formatArray, ResolveValue(split, variant, &format))
+			}
+			newFormat.Content[name] = formatArray
+		}
+		standardizedVariant.Format[sample] = *newFormat
+	}
+	return standardizedVariant.String(config)
 }
 
 // Initialize a new Variant
@@ -118,6 +139,14 @@ func newVariant() *Variant {
 	}
 }
 
+// Initialize a new VariantFormat
+func newVariantFormat() *VariantFormat {
+	return &VariantFormat{
+		Sample:  "",
+		Content: map[string][]string{},
+	}
+}
+
 // Write a line to the output file or stdout
 func writeLine(line string, file *os.File, stdout bool) {
 	if stdout {
@@ -125,4 +154,63 @@ func writeLine(line string, file *os.File, stdout bool) {
 	} else {
 		file.WriteString(line + "\n")
 	}
+}
+
+// Convert a variant to a string
+func (v *Variant) String(config *Config) string {
+	// logger := log.New(os.Stderr, "", 0)
+
+	// Make sure the order of the info fields is respected
+	infoSlice := []string{}
+	infoLength := len(v.Info)
+
+	infoKeys := make([]string, infoLength)
+	l := 0
+	for k := range v.Info {
+		infoKeys[l] = k
+		l++
+	}
+	sort.Strings(infoKeys)
+
+	for _, key := range infoKeys {
+		if config.Info[key].Type == "Flag" {
+			infoSlice = append(infoSlice, key)
+			continue
+		}
+		infoSlice = append(infoSlice, fmt.Sprintf("%s=%s", key, strings.Join(v.Info[key], ",")))
+	}
+
+	// Make sure the order of the format fields is respected
+	samples := v.Header.Samples
+	sort.Strings(samples)
+
+	formatKeys := []string{}
+	for k := range v.Format[samples[0]].Content {
+		formatKeys = append(formatKeys, k)
+	}
+	sort.Strings(formatKeys)
+
+	formatString := ""
+	formatString += strings.Join(formatKeys, ":")
+
+	for _, sample := range samples {
+		sampleArray := []string{}
+		for _, key := range formatKeys {
+			sampleArray = append(sampleArray, strings.Join(v.Format[sample].Content[key], ","))
+		}
+		formatString += fmt.Sprintf("\t%s", strings.Join(sampleArray, ":"))
+	}
+
+	return fmt.Sprintf(
+		"%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v",
+		v.Chromosome,
+		v.Pos,
+		v.Id,
+		v.Ref,
+		v.Alt,
+		v.Qual,
+		v.Filter,
+		strings.Join(infoSlice, ";"),
+		formatString,
+	)
 }

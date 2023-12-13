@@ -1,5 +1,5 @@
 # Test config for Delly SV caller
-id: "id"
+id: "delly_$INFO/SVTYPE"
 info:
   CALLER:
     value: delly
@@ -12,7 +12,7 @@ info:
     number: 2
     type: integer
   SVLEN:
-    value: $INFO/END-$POS
+    value: ~min $INFO/END $POS
     description: SV length
     number: 2
     type: integer
