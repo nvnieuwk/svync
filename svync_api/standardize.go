@@ -105,9 +105,15 @@ func (variant *Variant) standardizeToString(config *Config, Cctx *cli.Context, c
 	standardizedVariant.Header = variant.Header
 	standardizedVariant.Id = fmt.Sprintf("%s_%v", ResolveValue(config.Id, variant, nil), count)
 
+	sVType := variant.Alt[1 : len(variant.Alt)-1]
+
 	// Add info fields
-	for name, info := range config.Info {
-		standardizedVariant.Info[name] = []string{ResolveValue(info.Value, variant, nil)}
+	for name, infoConfig := range config.Info {
+		value := infoConfig.Value
+		if val, ok := config.Info[name].Alts[sVType]; ok {
+			value = val
+		}
+		standardizedVariant.Info[name] = []string{ResolveValue(value, variant, nil)}
 	}
 
 	// Add format fields
@@ -116,7 +122,11 @@ func (variant *Variant) standardizeToString(config *Config, Cctx *cli.Context, c
 		newFormat.Sample = sample
 
 		for name, formatConfig := range config.Format {
-			newFormat.Content[name] = []string{ResolveValue(formatConfig.Value, variant, &format)}
+			value := formatConfig.Value
+			if val, ok := formatConfig.Alts[sVType]; ok {
+				value = val
+			}
+			newFormat.Content[name] = []string{ResolveValue(value, variant, &format)}
 		}
 		standardizedVariant.Format[sample] = *newFormat
 	}

@@ -67,4 +67,5 @@ type ConfigInput struct {
 	Description string
 	Number      string
 	Type        string
+	Alts        map[string]string
 }
