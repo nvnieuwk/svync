@@ -12,7 +12,7 @@ info:
     number: 2
     type: integer
   SVLEN:
-    value: ~min $INFO/END $POS
+    value: ~min:$INFO/END,$POS
     description: SV length
     number: 2
     type: integer

@@ -107,11 +107,7 @@ func (variant *Variant) standardizeToString(config *Config, Cctx *cli.Context, c
 
 	// Add info fields
 	for name, info := range config.Info {
-		infoArray := []string{}
-		for _, split := range strings.Split(info.Value, ",") {
-			infoArray = append(infoArray, ResolveValue(split, variant, nil))
-		}
-		standardizedVariant.Info[name] = infoArray
+		standardizedVariant.Info[name] = []string{ResolveValue(info.Value, variant, nil)}
 	}
 
 	// Add format fields
@@ -120,11 +116,7 @@ func (variant *Variant) standardizeToString(config *Config, Cctx *cli.Context, c
 		newFormat.Sample = sample
 
 		for name, formatConfig := range config.Format {
-			formatArray := []string{}
-			for _, split := range strings.Split(formatConfig.Value, ",") {
-				formatArray = append(formatArray, ResolveValue(split, variant, &format))
-			}
-			newFormat.Content[name] = formatArray
+			newFormat.Content[name] = []string{ResolveValue(formatConfig.Value, variant, &format)}
 		}
 		standardizedVariant.Format[sample] = *newFormat
 	}

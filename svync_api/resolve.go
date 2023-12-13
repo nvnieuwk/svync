@@ -61,5 +61,9 @@ func ResolveValue(input string, variant *Variant, format *VariantFormat) string 
 	// Replace FILTER fields
 	input = strings.ReplaceAll(input, "$FILTER", variant.Filter)
 
-	return input
+	functionToken := "~"
+	if !strings.Contains(input, functionToken) {
+		return input
+	}
+	return resolveFunction(input, functionToken)
 }
