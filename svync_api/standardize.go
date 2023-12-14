@@ -105,7 +105,7 @@ func (variant *Variant) standardizeToString(config *Config, Cctx *cli.Context, c
 	standardizedVariant.Header = variant.Header
 	standardizedVariant.Id = fmt.Sprintf("%s_%v", ResolveValue(config.Id, variant, nil), count)
 
-	sVType := variant.Alt[1 : len(variant.Alt)-1]
+	sVType := variant.Info["SVTYPE"][0]
 
 	// Add info fields
 	for name, infoConfig := range config.Info {
