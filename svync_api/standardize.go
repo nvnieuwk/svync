@@ -3,7 +3,6 @@ package svync_api
 import (
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"regexp"
 	"sort"
@@ -106,7 +105,7 @@ func (vcf *VCF) StandardizeAndOutput(config *Config, Cctx *cli.Context) {
 }
 
 func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
-	logger := log.New(os.Stderr, "", 0)
+	// logger := log.New(os.Stderr, "", 0)
 	mateIds := variant.Info["MATEID"]
 	if len(mateIds) == 0 || len(mateIds) > 1 {
 		return variant
@@ -126,10 +125,6 @@ func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
 	pos := variant.Pos
 	chr2 := altGroups[2]
 	pos2 := altGroups[3]
-	intPos2, err := strconv.ParseInt(pos2, 0, 64)
-	if err != nil {
-		logger.Fatalf("Could not convert pos2 (%s) to an integer: %v", pos2, err)
-	}
 
 	filter := "."
 	if variant.Filter == mateVariant.Filter {
@@ -155,18 +150,13 @@ func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
 		Format:     map[string]VariantFormat{},
 	}
 
+	// TODO implement all SV types
 	if chr != chr2 {
 		breakpointVariant.Alt = "TRA"
 		breakpointVariant.Info["SVTYPE"] = []string{"TRA"}
-		breakpointVariant.Info["SVLEN"] = []string{"1"}
+		breakpointVariant.Info["SVLEN"] = []string{"0"}
 		breakpointVariant.Info["END"] = []string{pos2}
 		breakpointVariant.Info["CHR2"] = []string{chr2}
-		return &breakpointVariant
-	} else if math.Abs(float64(pos-intPos2)) == 1 {
-		breakpointVariant.Alt = "INS"
-		breakpointVariant.Info["SVTYPE"] = []string{"INS"}
-		breakpointVariant.Info["SVLEN"] = []string{"1"} // TODO add way to handle SVLEN for INS
-		breakpointVariant.Info["END"] = []string{pos2}
 		return &breakpointVariant
 	}
 
