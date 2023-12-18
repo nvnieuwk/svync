@@ -51,6 +51,20 @@ func (config *Config) defineMissing() {
 			Number:      "1",
 			Type:        "Integer",
 			Description: "End position of the variant described in this record",
+			Alts: map[string]string{
+				"BND": "",
+			},
+		}
+	}
+	if _, ok := config.Info["CHR2"]; !ok {
+		config.Info["CHR2"] = ConfigInput{
+			Value:       "",
+			Number:      "1",
+			Type:        "Integer",
+			Description: "End position of the variant described in this record",
+			Alts: map[string]string{
+				"TRA": "$INFO/CHR2",
+			},
 		}
 	}
 	if _, ok := config.Info["IMPRECISE"]; !ok {

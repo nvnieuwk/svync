@@ -44,6 +44,7 @@ type Variant struct {
 	Header     *Header
 	Info       map[string][]string
 	Format     map[string]VariantFormat
+	Parsed     bool
 }
 
 type VariantFormat struct {

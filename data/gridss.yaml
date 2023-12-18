@@ -1,0 +1,19 @@
+# Test config for Delly SV caller
+id: "gridss_$INFO/SVTYPE"
+info:
+  CALLER:
+    value: gridss
+    description: SV caller
+    number: 1
+    type: string
+  SVLEN:
+    value: 1
+    description: SV length
+    number: 1
+    type: integer
+format:
+  GT:
+    value: ./.
+    description: Genotype
+    number: 1
+    type: string

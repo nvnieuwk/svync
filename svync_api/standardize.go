@@ -3,9 +3,11 @@ package svync_api
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -86,10 +88,93 @@ func (vcf *VCF) StandardizeAndOutput(config *Config, Cctx *cli.Context) {
 	variantCount := 0
 	for _, variant := range vcf.Variants {
 		// Standardize the variant
-		line := variant.standardizeToString(config, Cctx, variantCount)
+		if variant.Parsed {
+			continue
+		}
+		line := ""
+		if Cctx.String("notation") == "breakpoint" {
+			breakpointVariant := variant.toBreakPoint(vcf)
+			line = breakpointVariant.standardizeToString(config, Cctx, variantCount)
+		} else if Cctx.String("notation") == "breakend" {
+			continue
+		} else {
+			line = variant.standardizeToString(config, Cctx, variantCount)
+		}
 		variantCount++
 		writeLine(line, file, stdout)
 	}
+}
+
+func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
+	logger := log.New(os.Stderr, "", 0)
+	mateIds := variant.Info["MATEID"]
+	if len(mateIds) == 0 || len(mateIds) > 1 {
+		return variant
+	}
+
+	mateId := mateIds[0]
+	mateVariant, ok := vcf.Variants[mateId]
+	if ok {
+		mateVariant.Parsed = true
+		vcf.Variants[mateId] = mateVariant
+	}
+
+	altRegex := regexp.MustCompile(`(\[|\])(?P<chr>[^:]*):(?P<pos>[0-9]*)(\]|\[)`)
+	altGroups := altRegex.FindStringSubmatch(variant.Alt)
+
+	chr := variant.Chromosome
+	pos := variant.Pos
+	chr2 := altGroups[2]
+	pos2 := altGroups[3]
+	intPos2, err := strconv.ParseInt(pos2, 0, 64)
+	if err != nil {
+		logger.Fatalf("Could not convert pos2 (%s) to an integer: %v", pos2, err)
+	}
+
+	filter := "."
+	if variant.Filter == mateVariant.Filter {
+		filter = variant.Filter
+	}
+
+	varQual, err := strconv.ParseFloat(variant.Qual, 64)
+	mateQual, err := strconv.ParseFloat(mateVariant.Qual, 64)
+	qual := "."
+	if err == nil {
+		qual = fmt.Sprintf("%f", (varQual+mateQual)/2)
+	}
+
+	breakpointVariant := Variant{
+		Chromosome: chr,
+		Pos:        pos,
+		Id:         variant.Id,
+		Ref:        variant.Ref,
+		Filter:     filter,
+		Qual:       qual,
+		Header:     variant.Header,
+		Info:       map[string][]string{},
+		Format:     map[string]VariantFormat{},
+	}
+
+	if chr != chr2 {
+		breakpointVariant.Alt = "TRA"
+		breakpointVariant.Info["SVTYPE"] = []string{"TRA"}
+		breakpointVariant.Info["SVLEN"] = []string{"1"}
+		breakpointVariant.Info["END"] = []string{pos2}
+		breakpointVariant.Info["CHR2"] = []string{chr2}
+		return &breakpointVariant
+	} else if math.Abs(float64(pos-intPos2)) == 1 {
+		breakpointVariant.Alt = "INS"
+		breakpointVariant.Info["SVTYPE"] = []string{"INS"}
+		breakpointVariant.Info["SVLEN"] = []string{"1"} // TODO add way to handle SVLEN for INS
+		breakpointVariant.Info["END"] = []string{pos2}
+		return &breakpointVariant
+	}
+
+	//TODO add way to handle info and format fields of mates merging
+	fmt.Println(chr, pos)
+	fmt.Println(chr2, pos2)
+
+	return variant
 }
 
 // Standardize the variant and return it as a string
@@ -112,6 +197,10 @@ func (variant *Variant) standardizeToString(config *Config, Cctx *cli.Context, c
 		value := infoConfig.Value
 		if val, ok := config.Info[name].Alts[sVType]; ok {
 			value = val
+		}
+		// Don't add INFO fields with empty values
+		if value == "" {
+			continue
 		}
 		standardizedVariant.Info[name] = []string{ResolveValue(value, variant, nil)}
 	}

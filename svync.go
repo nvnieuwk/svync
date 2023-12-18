@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"os"
+	"slices"
+	"strings"
 
 	"github.com/nvnieuwk/svync/svync_api"
 	cli "github.com/urfave/cli/v2"
@@ -26,6 +28,19 @@ func main() {
 				Aliases:  []string{"o"},
 				Usage:    "The location to the output VCF file, defaults to stdout",
 				Category: "Optional",
+			},
+			&cli.StringFlag{
+				Name:     "notation",
+				Aliases:  []string{"n"},
+				Usage:    "The notation to use for the output VCF file. Must be one of: breakpoint, breakend. By default the notation isn't changed",
+				Category: "Optional",
+				Action: func(c *cli.Context, input string) error {
+					validNotations := []string{"breakpoint", "breakend"}
+					if slices.Contains(validNotations, input) {
+						return nil
+					}
+					return cli.Exit("Invalid notation '"+input+"', must be one of: "+strings.Join(validNotations, ", "), 1)
+				},
 			},
 			&cli.StringFlag{
 				Name:     "config",
