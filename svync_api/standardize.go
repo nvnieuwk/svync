@@ -3,6 +3,7 @@ package svync_api
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"regexp"
 	"sort"
@@ -92,8 +93,11 @@ func (vcf *VCF) StandardizeAndOutput(config *Config, Cctx *cli.Context) {
 		}
 		line := ""
 		if Cctx.String("notation") == "breakpoint" {
-			breakpointVariant := variant.toBreakPoint(vcf)
-			line = breakpointVariant.standardizeToString(config, Cctx, variantCount)
+			if variant.Info["SVTYPE"][0] == "BND" {
+				line = variant.toBreakPoint(vcf).standardizeToString(config, Cctx, variantCount)
+			} else {
+				line = variant.standardizeToString(config, Cctx, variantCount)
+			}
 		} else if Cctx.String("notation") == "breakend" {
 			continue
 		} else {
@@ -105,8 +109,10 @@ func (vcf *VCF) StandardizeAndOutput(config *Config, Cctx *cli.Context) {
 }
 
 func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
-	// logger := log.New(os.Stderr, "", 0)
+	logger := log.New(os.Stderr, "", 0)
 	mateIds := variant.Info["MATEID"]
+
+	// Don't convert if less or more than 1 mate are found
 	if len(mateIds) == 0 || len(mateIds) > 1 {
 		return variant
 	}
@@ -118,13 +124,32 @@ func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
 		vcf.Variants[mateId] = mateVariant
 	}
 
-	altRegex := regexp.MustCompile(`(\[|\])(?P<chr>[^:]*):(?P<pos>[0-9]*)(\]|\[)`)
-	altGroups := altRegex.FindStringSubmatch(variant.Alt)
+	alt := variant.Alt
+	altRegex := regexp.MustCompile(`(\[|\])(?P<chr>[^:]*):(?P<pos>[0-9]*)`)
+	altGroups := altRegex.FindStringSubmatch(alt)
 
 	chr := variant.Chromosome
 	pos := variant.Pos
 	chr2 := altGroups[2]
-	pos2 := altGroups[3]
+	pos2, err := strconv.ParseInt(altGroups[3], 0, 64)
+	if err != nil {
+		logger.Fatalf("Couldn't convert string to integer: %v", err)
+	}
+	bracket := altGroups[1]
+	strand1 := ""
+	strand2 := ""
+
+	if strings.HasSuffix(alt, "[") || strings.HasSuffix(alt, "]") {
+		strand1 = "-"
+	} else {
+		strand1 = "+"
+	}
+
+	if bracket == string('[') {
+		strand2 = "-"
+	} else {
+		strand2 = "+"
+	}
 
 	filter := "."
 	if variant.Filter == mateVariant.Filter {
@@ -146,25 +171,53 @@ func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
 		Filter:     filter,
 		Qual:       qual,
 		Header:     variant.Header,
-		Info:       map[string][]string{},
-		Format:     map[string]VariantFormat{},
+		Info: map[string][]string{
+			"END":  {fmt.Sprint(pos2)},
+			"CHR2": {chr2},
+		},
+		Format: map[string]VariantFormat{},
 	}
 
-	// TODO implement all SV types
+	// Define all types and determine their svlen
+	svtype := ""
+	svlen := strconv.FormatFloat(math.Abs(float64(pos2-pos)), 'g', -1, 64)
 	if chr != chr2 {
-		breakpointVariant.Alt = "TRA"
-		breakpointVariant.Info["SVTYPE"] = []string{"TRA"}
-		breakpointVariant.Info["SVLEN"] = []string{"0"}
-		breakpointVariant.Info["END"] = []string{pos2}
-		breakpointVariant.Info["CHR2"] = []string{chr2}
+		svtype = "TRA"
+		svlen = "0"
+	} else if strand1 == strand2 {
+		svtype = "INV"
+	} else if float64(getInsLen(alt, strand1, bracket)) > math.Abs(float64(pos2-pos))*0.5 {
+		svtype = "INS"
+		svlen = fmt.Sprint(getInsLen(alt, strand1, bracket))
+	} else if pos < pos2 && strand1 == "-" && strand2 == "+" {
+		svtype = "DUP"
+	} else if pos > pos2 && strand1 == "+" && strand2 == "-" {
+		svtype = "DUP"
+	} else {
+		svtype = "DEL"
+		svlen = strconv.FormatFloat(-math.Abs(float64(pos2-pos)), 'g', -1, 64)
+	}
+
+	if svtype != "" {
+		breakpointVariant.Alt = svtype
+		breakpointVariant.Info["SVTYPE"] = []string{svtype}
+		breakpointVariant.Info["SVLEN"] = []string{svlen}
 		return &breakpointVariant
 	}
 
 	//TODO add way to handle info and format fields of mates merging
-	fmt.Println(chr, pos)
-	fmt.Println(chr2, pos2)
 
 	return variant
+}
+
+func getInsLen(alt string, strand string, bracket string) int {
+	insSeq := ""
+	if strand == "-" {
+		insSeq = alt[strings.LastIndex(alt, bracket):]
+	} else {
+		insSeq = alt[:strings.LastIndex(alt, bracket)]
+	}
+	return len(insSeq)
 }
 
 // Standardize the variant and return it as a string
