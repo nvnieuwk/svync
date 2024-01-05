@@ -22,7 +22,7 @@ func ResolveValue(input string, variant *Variant, format *VariantFormat) string 
 		formatValue, ok := format.Content[field]
 		// TODO implement some alternative way to handle missing fields
 		if !ok {
-			logger.Fatalf("The field %s is not present in the FORMAT fields of the variant with ID %s", field, variant.Id)
+			logger.Printf("The field %s is not present in the FORMAT fields of the variant with ID %s, excluding it from this variant", field, variant.Id)
 		}
 		input = strings.ReplaceAll(input, stringToReplace, strings.Join(formatValue, ","))
 	}
@@ -37,7 +37,7 @@ func ResolveValue(input string, variant *Variant, format *VariantFormat) string 
 		if !ok {
 			infoType := variant.Header.Info[field].Type
 			if infoType != "Flag" {
-				logger.Fatalf("The field %s is not present in the INFO fields of the variant with ID %s", field, variant.Id)
+				logger.Printf("The field %s is not present in the INFO fields of the variant with ID %s, excluding it from this variant", field, variant.Id)
 			}
 		}
 		input = strings.ReplaceAll(input, stringToReplace, strings.Join(info, ","))

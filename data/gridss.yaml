@@ -6,11 +6,27 @@ info:
     description: SV caller
     number: 1
     type: string
+  CIPOS:
+    value: $INFO/CIPOS
+    description: Confidence interval around POS for imprecise variants
+    number: 2
+    type: Integer
+    alts:
+      BND:
+  CIEND:
+    value: $INFO/CIRPOS
+    description: Confidence interval around END position for imprecise variants
+    number: 2
+    type: Integer
+    alts:
+      BND:
   SVLEN:
-    value: 1
-    description: SV length
+    value: $INFO/SVLEN
+    description: The length of the structural variant
     number: 1
-    type: integer
+    type: Integer
+    alts:
+      BND: 
 format:
   GT:
     value: ./.

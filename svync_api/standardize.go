@@ -171,12 +171,12 @@ func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
 		Filter:     filter,
 		Qual:       qual,
 		Header:     variant.Header,
-		Info: map[string][]string{
-			"END":  {fmt.Sprint(pos2)},
-			"CHR2": {chr2},
-		},
-		Format: map[string]VariantFormat{},
+		Info:       variant.Info,
+		Format:     variant.Format,
 	}
+
+	breakpointVariant.Info["END"] = []string{fmt.Sprint(pos2)}
+	breakpointVariant.Info["CHR2"] = []string{chr2}
 
 	// Define all types and determine their svlen
 	svtype := ""
@@ -205,19 +205,14 @@ func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
 		return &breakpointVariant
 	}
 
-	//TODO add way to handle info and format fields of mates merging
-
 	return variant
 }
 
 func getInsLen(alt string, strand string, bracket string) int {
-	insSeq := ""
 	if strand == "-" {
-		insSeq = alt[strings.LastIndex(alt, bracket):]
-	} else {
-		insSeq = alt[:strings.LastIndex(alt, bracket)]
+		return len(alt[strings.LastIndex(alt, bracket):])
 	}
-	return len(insSeq)
+	return len(alt[:strings.LastIndex(alt, bracket)])
 }
 
 // Standardize the variant and return it as a string
@@ -311,7 +306,11 @@ func (v *Variant) String(config *Config) string {
 			infoSlice = append(infoSlice, key)
 			continue
 		}
-		infoSlice = append(infoSlice, fmt.Sprintf("%s=%s", key, strings.Join(v.Info[key], ",")))
+		value := v.Info[key]
+		if value[0] == "" && len(value) == 1 {
+			continue
+		}
+		infoSlice = append(infoSlice, fmt.Sprintf("%s=%s", key, strings.Join(value, ",")))
 	}
 
 	// Make sure the order of the format fields is respected
