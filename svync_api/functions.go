@@ -1,6 +1,7 @@
 package svync_api
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"regexp"
@@ -35,6 +36,8 @@ func resolveFunction(input string, token string) string {
 		result += sub(value)
 	case "sum":
 		result += sum(value)
+	case "len":
+		result += fmt.Sprint(len(value[0]))
 	default:
 		logger.Fatalf("The function '%s' is not supported", value[1:])
 	}

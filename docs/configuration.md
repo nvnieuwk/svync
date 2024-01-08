@@ -125,3 +125,10 @@ The `~sum` function can be used to take the sum of all values. The function can 
 ```
 
 :warning: only integers and floats are supported for this function :warning:
+
+#### `~len`
+The `~len` function can be used to get the length of a string value. The function can be used as follows:
+
+```yaml
+~len:<value>
+```
