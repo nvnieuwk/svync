@@ -43,8 +43,12 @@ func (vcf *VCF) StandardizeAndOutput(config *Config, Cctx *cli.Context) {
 
 	// ALT header lines
 	for _, alt := range vcf.Header.Alt {
+		altId := alt.Id
+		if newAlt, ok := config.Alt[altId]; ok {
+			altId = newAlt
+		}
 		description := descriptionRegex.FindStringSubmatch(alt.Description)[1]
-		altLine := fmt.Sprintf("##ALT=<ID=%s,Description=\"%s\">", alt.Id, description)
+		altLine := fmt.Sprintf("##ALT=<ID=%s,Description=\"%s\">", altId, description)
 		writeLine(altLine, file, stdout)
 	}
 
