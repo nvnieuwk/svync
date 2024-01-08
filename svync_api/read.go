@@ -43,7 +43,7 @@ func newVCF() *VCF {
 			Format: map[string]HeaderLineIdNumberTypeDescription{},
 			Alt:    map[string]HeaderLineIdDescription{},
 			Filter: map[string]HeaderLineIdDescription{},
-			Contig: map[string]HeaderLineIdLength{},
+			Contig: []HeaderLineIdLength{},
 		},
 		Variants: map[string]Variant{},
 	}
@@ -249,10 +249,10 @@ func (header *Header) parse(line string) {
 		if err != nil {
 			log.Fatalf("Could not convert contig length to an integer: %v", err)
 		}
-		header.Contig[contentMap["id"]] = HeaderLineIdLength{
+		header.Contig = append(header.Contig, HeaderLineIdLength{
 			Id:     contentMap["id"],
 			Length: length,
-		}
+		})
 	}
 
 }

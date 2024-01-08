@@ -11,7 +11,7 @@ type Header struct {
 	Format  map[string]HeaderLineIdNumberTypeDescription
 	Alt     map[string]HeaderLineIdDescription
 	Filter  map[string]HeaderLineIdDescription
-	Contig  map[string]HeaderLineIdLength
+	Contig  []HeaderLineIdLength
 	Other   []string
 	Samples []string
 }
