@@ -31,15 +31,15 @@ func resolveFunction(input string, token string) string {
 	}
 
 	switch function {
-	case "min":
-		result += min(value)
+	case "sub":
+		result += sub(value)
 	default:
 		logger.Fatalf("The function '%s' is not supported", value[1:])
 	}
 	return result
 }
 
-func min(input []string) string {
+func sub(input []string) string {
 	result := stringToFloat(input[0])
 	for i := 1; i < len(input); i++ {
 		result -= stringToFloat(input[i])

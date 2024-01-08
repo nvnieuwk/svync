@@ -14,12 +14,12 @@ info:
     number: 2
     type: integer
   SVLEN:
-    value: ~min:$INFO/END,$POS
+    value: ~sub:$INFO/END,$POS
     description: SV length
     number: 2
     type: integer
     alts:
-      DEL: -~min:$INFO/END,$POS
+      DEL: -~sub:$INFO/END,$POS
       INS: $INFO/INSLEN
 format:
   PE:
