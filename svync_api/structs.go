@@ -58,6 +58,7 @@ type VariantFormat struct {
 
 type Config struct {
 	Id     string
+	Alt    map[string]string
 	Info   MapConfigInput
 	Format MapConfigInput
 }

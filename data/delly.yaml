@@ -1,5 +1,7 @@
 # Test config for Delly SV caller
 id: "delly_$INFO/SVTYPE"
+alt:
+  BND: TRA
 info:
   CALLER:
     value: delly

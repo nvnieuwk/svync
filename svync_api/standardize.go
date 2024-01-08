@@ -296,9 +296,18 @@ func (variant *Variant) standardize(config *Config, Cctx *cli.Context, count int
 	standardizedVariant.Qual = variant.Qual
 	standardizedVariant.Filter = variant.Filter
 	standardizedVariant.Header = variant.Header
-	standardizedVariant.Id = fmt.Sprintf("%s_%v", ResolveValue(config.Id, variant, nil), count)
 
 	sVType := variant.Info["SVTYPE"][0]
+
+	if config.Alt != nil {
+		if alt, ok := config.Alt[sVType]; ok {
+			sVType = alt
+			standardizedVariant.Alt = "<" + alt + ">"
+			variant.Info["SVTYPE"] = []string{alt}
+		}
+	}
+
+	standardizedVariant.Id = fmt.Sprintf("%s_%v", ResolveValue(config.Id, variant, nil), count)
 
 	// Add info fields
 	for name, infoConfig := range config.Info {
