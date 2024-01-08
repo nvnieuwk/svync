@@ -18,15 +18,16 @@ info:
     description: Confidence interval around END position for imprecise variants
     number: 2
     type: Integer
-    alts:
-      BND:
   SVLEN:
     value: $INFO/SVLEN
     description: The length of the structural variant
     number: 1
     type: Integer
-    alts:
-      BND: 
+  IMPRECISE:
+    value: $INFO/IMPRECISE
+    description: Imprecise structural variation
+    number: 0
+    type: flag
 format:
   GT:
     value: ./.

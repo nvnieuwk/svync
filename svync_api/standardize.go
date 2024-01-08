@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -94,14 +95,15 @@ func (vcf *VCF) StandardizeAndOutput(config *Config, Cctx *cli.Context) {
 		line := ""
 		if Cctx.String("notation") == "breakpoint" {
 			if variant.Info["SVTYPE"][0] == "BND" {
-				line = variant.toBreakPoint(vcf).standardizeToString(config, Cctx, variantCount)
+				line = variant.toBreakPoint(vcf).standardize(config, Cctx, variantCount).String(config)
 			} else {
-				line = variant.standardizeToString(config, Cctx, variantCount)
+				line = variant.standardize(config, Cctx, variantCount).String(config)
 			}
 		} else if Cctx.String("notation") == "breakend" {
-			continue
+			variant1, variant2 := variant.standardize(config, Cctx, variantCount).toBreakEnd()
+			line = variant1.String(config) + "\n" + variant2.String(config)
 		} else {
-			line = variant.standardizeToString(config, Cctx, variantCount)
+			line = variant.standardize(config, Cctx, variantCount).String(config)
 		}
 		variantCount++
 		writeLine(line, file, stdout)
@@ -163,7 +165,7 @@ func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
 		qual = fmt.Sprintf("%f", (varQual+mateQual)/2)
 	}
 
-	breakpointVariant := Variant{
+	breakpointVariant := &Variant{
 		Chromosome: chr,
 		Pos:        pos,
 		Id:         variant.Id,
@@ -202,10 +204,78 @@ func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
 		breakpointVariant.Alt = svtype
 		breakpointVariant.Info["SVTYPE"] = []string{svtype}
 		breakpointVariant.Info["SVLEN"] = []string{svlen}
-		return &breakpointVariant
+		return breakpointVariant
 	}
 
 	return variant
+}
+
+// Determining the ALT fields is impossible for breakpoint -> breakend conversion
+func (variant *Variant) toBreakEnd() (*Variant, *Variant) {
+	logger := log.New(os.Stderr, "", 0)
+
+	id1 := variant.Id + "_01"
+	id2 := variant.Id + "_02"
+
+	end, err := strconv.ParseInt(variant.Info["END"][0], 0, 64)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	chr := variant.Chromosome
+	chr2 := ""
+	chrom2, ok := variant.Info["CHR2"]
+	if !ok {
+		chr2 = variant.Chromosome
+	} else {
+		chr2 = chrom2[0]
+	}
+
+	info1 := map[string][]string{}
+	info2 := map[string][]string{}
+	for name, info := range variant.Info {
+		if slices.Contains([]string{"CHR2", "END", "SVLEN"}, name) {
+			continue
+		}
+		info1[name] = info
+		info2[name] = info
+	}
+
+	info1["SVTYPE"] = []string{"BND"}
+	info2["SVTYPE"] = []string{"BND"}
+	info1["MATEID"] = []string{id2}
+	info2["MATEID"] = []string{id1}
+
+	alt1 := "."
+	alt2 := "."
+
+	breakend1 := &Variant{
+		Chromosome: chr,
+		Pos:        variant.Pos,
+		Id:         id1,
+		Alt:        alt1,
+		Ref:        variant.Ref,
+		Qual:       variant.Qual,
+		Filter:     variant.Filter,
+		Header:     variant.Header,
+		Info:       info1,
+		Format:     variant.Format,
+	}
+
+	breakend2 := &Variant{
+		Chromosome: chr2,
+		Pos:        end,
+		Id:         id2,
+		Alt:        alt2,
+		Ref:        "N", // TODO find a good way to determine the breakend2 REF
+		Qual:       variant.Qual,
+		Filter:     variant.Filter,
+		Header:     variant.Header,
+		Info:       info2,
+		Format:     variant.Format,
+	}
+
+	return breakend1, breakend2
 }
 
 func getInsLen(alt string, strand string, bracket string) int {
@@ -216,7 +286,7 @@ func getInsLen(alt string, strand string, bracket string) int {
 }
 
 // Standardize the variant and return it as a string
-func (variant *Variant) standardizeToString(config *Config, Cctx *cli.Context, count int) string {
+func (variant *Variant) standardize(config *Config, Cctx *cli.Context, count int) *Variant {
 	// logger := log.New(os.Stderr, "", 0)
 	standardizedVariant := newVariant()
 	standardizedVariant.Chromosome = variant.Chromosome
@@ -257,7 +327,7 @@ func (variant *Variant) standardizeToString(config *Config, Cctx *cli.Context, c
 		}
 		standardizedVariant.Format[sample] = *newFormat
 	}
-	return standardizedVariant.String(config)
+	return standardizedVariant
 }
 
 // Initialize a new Variant
