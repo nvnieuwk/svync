@@ -91,7 +91,9 @@ A variable can be resolved appending a `$` to the field name.
 
 Following variables are available:
 1. `$FORMAT/<format_field>` => This is only accesible for other format fields
+    - An additional `/<number>` can be added to get a specific value in case of multiple values
 2. `$INFO/<info_field>`
+    - An additional `/<number>` can be added to get a specific value in case of multiple values
 3. `$POS`
 4. `$CHROM`
 5. `$ALT`

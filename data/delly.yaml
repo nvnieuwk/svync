@@ -9,7 +9,7 @@ info:
     number: 1
     type: string
   TEST:
-    value: $INFO/END,$INFO/CIEND
+    value: $INFO/END,$INFO/CIEND/1
     description: Test info field
     number: 2
     type: integer
