@@ -110,8 +110,16 @@ More functions can be added in the future. Please open an issue to request new f
 The `~sub` function can be used to substract values from each other. The function can be used as follows:
 
 ```yaml
-~sub:<value_start>,<value_to_substract>,<value_to_substract> ...
+~sub:<value_start>,<value_to_substract>,<value_to_substract>,...
 ```
 
 :warning: only integers and floats are supported for this function :warning:
 
+#### `~sum`
+The `~sum` function can be used to take the sum of all values. The function can be used as follows:
+
+```yaml
+~sum:<value_start>,<value_to_add>,<value_to_add>,...
+```
+
+:warning: only integers and floats are supported for this function :warning:

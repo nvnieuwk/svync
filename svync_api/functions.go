@@ -33,6 +33,8 @@ func resolveFunction(input string, token string) string {
 	switch function {
 	case "sub":
 		result += sub(value)
+	case "sum":
+		result += sum(value)
 	default:
 		logger.Fatalf("The function '%s' is not supported", value[1:])
 	}
@@ -43,6 +45,14 @@ func sub(input []string) string {
 	result := stringToFloat(input[0])
 	for i := 1; i < len(input); i++ {
 		result -= stringToFloat(input[i])
+	}
+	return floatToString(result)
+}
+
+func sum(input []string) string {
+	result := stringToFloat(input[0])
+	for i := 1; i < len(input); i++ {
+		result += stringToFloat(input[i])
 	}
 	return floatToString(result)
 }
