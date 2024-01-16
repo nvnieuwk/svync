@@ -1,10 +1,6 @@
 package svync_api
 
 // VCF structs
-type VCF struct {
-	Header   Header
-	Variants map[string]Variant
-}
 
 type Header struct {
 	Info    map[string]HeaderLineIdNumberTypeDescription

@@ -12,28 +12,15 @@ import (
 )
 
 // Convert a breakend variant pair to one breakpoint
-func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
+func toBreakPoint(mate1 *Variant, mate2 *Variant) *Variant {
 	logger := log.New(os.Stderr, "", 0)
-	mateIds := variant.Info["MATEID"]
 
-	// Don't convert if less or more than 1 mate are found
-	if len(mateIds) == 0 || len(mateIds) > 1 {
-		return variant
-	}
-
-	mateId := mateIds[0]
-	mateVariant, ok := vcf.Variants[mateId]
-	if ok {
-		mateVariant.Parsed = true
-		vcf.Variants[mateId] = mateVariant
-	}
-
-	alt := variant.Alt
+	alt := mate1.Alt
 	altRegex := regexp.MustCompile(`(\[|\])(?P<chr>[^:]*):(?P<pos>[0-9]*)`)
 	altGroups := altRegex.FindStringSubmatch(alt)
 
-	chr := variant.Chromosome
-	pos := variant.Pos
+	chr := mate1.Chromosome
+	pos := mate1.Pos
 	chr2 := altGroups[2]
 	pos2, err := strconv.ParseInt(altGroups[3], 0, 64)
 	if err != nil {
@@ -56,12 +43,12 @@ func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
 	}
 
 	filter := "."
-	if variant.Filter == mateVariant.Filter {
-		filter = variant.Filter
+	if mate1.Filter == mate2.Filter {
+		filter = mate1.Filter
 	}
 
-	varQual, err := strconv.ParseFloat(variant.Qual, 64)
-	mateQual, err := strconv.ParseFloat(mateVariant.Qual, 64)
+	varQual, err := strconv.ParseFloat(mate1.Qual, 64)
+	mateQual, err := strconv.ParseFloat(mate2.Qual, 64)
 	qual := "."
 	if err == nil {
 		qual = fmt.Sprintf("%f", (varQual+mateQual)/2)
@@ -70,13 +57,13 @@ func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
 	breakpointVariant := &Variant{
 		Chromosome: chr,
 		Pos:        pos,
-		Id:         variant.Id,
-		Ref:        variant.Ref,
+		Id:         mate1.Id,
+		Ref:        mate1.Ref,
 		Filter:     filter,
 		Qual:       qual,
-		Header:     variant.Header,
-		Info:       variant.Info,
-		Format:     variant.Format,
+		Header:     mate1.Header,
+		Info:       mate1.Info,
+		Format:     mate1.Format,
 	}
 
 	breakpointVariant.Info["END"] = []string{fmt.Sprint(pos2)}
@@ -102,14 +89,10 @@ func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
 		svlen = strconv.FormatFloat(-math.Abs(float64(pos2-pos)), 'g', -1, 64)
 	}
 
-	if svtype != "" {
-		breakpointVariant.Alt = svtype
-		breakpointVariant.Info["SVTYPE"] = []string{svtype}
-		breakpointVariant.Info["SVLEN"] = []string{svlen}
-		return breakpointVariant
-	}
-
-	return variant
+	breakpointVariant.Alt = svtype
+	breakpointVariant.Info["SVTYPE"] = []string{svtype}
+	breakpointVariant.Info["SVLEN"] = []string{svlen}
+	return breakpointVariant
 }
 
 // Get the length of an insertion

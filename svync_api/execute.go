@@ -15,60 +15,80 @@ import (
 )
 
 // Read the VCF file and return it as a VCF struct
-func ReadVcf(Cctx *cli.Context) *VCF {
+func Execute(Cctx *cli.Context, config *Config) {
 	logger := log.New(os.Stderr, "", 0)
 
 	file := Cctx.String("input")
-	openFile, err := os.Open(file)
-	defer openFile.Close()
+	inputVcf, err := os.Open(file)
+	defer inputVcf.Close()
 	if err != nil {
 		logger.Fatal(err)
 	}
+	header := newHeader()
+	breakEndVariants := &map[string]Variant{}
+	headerIsMade := false
+	variantCount := 0
 
-	vcf := newVCF()
-	if strings.HasSuffix(file, ".gz") {
-		vcf.readBgzip(openFile)
-	} else {
-		vcf.readPlain(openFile)
-	}
-
-	return vcf
-}
-
-// Initialize a new VCF
-func newVCF() *VCF {
-	return &VCF{
-		Header: Header{
-			Info:   map[string]HeaderLineIdNumberTypeDescription{},
-			Format: map[string]HeaderLineIdNumberTypeDescription{},
-			Alt:    map[string]HeaderLineIdDescription{},
-			Filter: map[string]HeaderLineIdDescription{},
-			Contig: []HeaderLineIdLength{},
-		},
-		Variants: map[string]Variant{},
-	}
-}
-
-// Read the VCF file in bgzip format and convert it to a VCF struct
-func (vcf *VCF) readBgzip(input *os.File) {
-	logger := log.New(os.Stderr, "", 0)
-
-	bgReader, err := bgzf.NewReader(input, 1)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	defer bgReader.Close()
-
-	for {
-		b, _, err := readBgzipLine(bgReader)
+	stdout := true
+	var outputFile *os.File
+	if Cctx.String("output") != "" {
+		stdout = false
+		outputFile, err = os.Create(Cctx.String("output"))
 		if err != nil {
-			if err == io.EOF {
-				break
+			logger.Fatalf("Failed to create the output file: %v", err)
+		}
+		defer outputFile.Close()
+	}
+
+	if strings.HasSuffix(file, ".gz") {
+		bgReader, err := bgzf.NewReader(inputVcf, 1)
+		if err != nil {
+			logger.Fatal(err)
+		}
+		defer bgReader.Close()
+
+		for {
+			b, _, err := readBgzipLine(bgReader)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				logger.Fatal(string(b[:]))
 			}
-			logger.Fatal(string(b[:]))
+
+			parseLine(
+				string(bytes.TrimSpace(b[:])),
+				header,
+				breakEndVariants,
+				config,
+				Cctx,
+				&headerIsMade,
+				outputFile,
+				stdout,
+				&variantCount,
+			)
+		}
+	} else {
+		scanner := bufio.NewScanner(inputVcf)
+		const maxCapacity = 8 * 1000000 // 8 MB
+		scanner.Buffer(make([]byte, maxCapacity), maxCapacity)
+		for scanner.Scan() {
+			parseLine(
+				scanner.Text(),
+				header,
+				breakEndVariants,
+				config,
+				Cctx,
+				&headerIsMade,
+				outputFile,
+				stdout,
+				&variantCount,
+			)
 		}
 
-		vcf.parse(string(bytes.TrimSpace(b[:])))
+		if err := scanner.Err(); err != nil {
+			logger.Fatal(err)
+		}
 	}
 
 }
@@ -95,44 +115,56 @@ func readBgzipLine(r *bgzf.Reader) ([]byte, bgzf.Chunk, error) {
 	return data, chunk, err
 }
 
-// Read the VCF file in plain text format and convert it to a VCF struct
-func (vcf *VCF) readPlain(input *os.File) {
-	logger := log.New(os.Stderr, "", 0)
-
-	scanner := bufio.NewScanner(input)
-	const maxCapacity = 8 * 1000000 // 8 MB
-	scanner.Buffer(make([]byte, maxCapacity), maxCapacity)
-	for scanner.Scan() {
-		vcf.parse(scanner.Text())
-	}
-
-	if err := scanner.Err(); err != nil {
-		logger.Fatal(err)
-	}
-
-}
-
 // Parse the line and add it to the VCF struct
-func (vcf *VCF) parse(line string) {
+func parseLine(
+	line string,
+	header *Header,
+	breakEndVariants *map[string]Variant,
+	config *Config,
+	Cctx *cli.Context,
+	headerIsMade *bool,
+	outputFile *os.File,
+	stdout bool,
+	variantCount *int,
+) {
+	if !strings.HasSuffix(line, "#") && !*headerIsMade {
+		writeHeader(config, Cctx, header, outputFile, stdout)
+	}
+
 	if strings.HasPrefix(line, "#") {
-		vcf.Header.parse(line)
+		header.parse(line)
 	} else {
 		id := strings.Split(line, "\t")[2]
-		variant := &Variant{}
-		variant.Header = &vcf.Header
-		variant.parse(line)
-		vcf.Variants[id] = *variant
-		// logger.Println(vcf.Variants[id])
+		variant := createVariant(line)
+		variant.Header = header
+
+		// Convert breakends to breakpoints if the --to-breakpoint flag is set
+		if Cctx.Bool("to-breakpoint") && variant.Info["SVTYPE"][0] == "BND" && len(variant.Info["MATEID"]) == 1 {
+			mateid := variant.Info["MATEID"][0]
+			if mate, ok := (*breakEndVariants)[mateid]; ok {
+				variant = toBreakPoint(variant, &mate)
+				delete(*breakEndVariants, mateid)
+			} else {
+				(*breakEndVariants)[id] = *variant
+				return
+			}
+		}
+		*variantCount++
+
+		// Standardize and output the variant
 	}
 }
 
 // Parse the line and add it to the Variant struct
-func (variant *Variant) parse(line string) {
+func createVariant(line string) *Variant {
 	logger := log.New(os.Stderr, "", 0)
 
-	err := error(nil)
+	variant := Variant{}
+
 	data := strings.Split(line, "\t")
 	variant.Chromosome = data[0]
+
+	var err error
 	variant.Pos, err = strconv.ParseInt(data[1], 0, 64)
 	if err != nil {
 		logger.Fatal(err)
@@ -169,6 +201,8 @@ func (variant *Variant) parse(line string) {
 			variant.Format[sample].Content[header] = parseInfoFormat(header, val, variant.Header.Format)
 		}
 	}
+
+	return &variant
 
 }
 
@@ -286,4 +320,17 @@ func convertLineToMap(line string) map[string]string {
 	data[key] = word
 
 	return data
+}
+
+// Create a new header struct
+func newHeader() *Header {
+	return &Header{
+		Info:    map[string]HeaderLineIdNumberTypeDescription{},
+		Format:  map[string]HeaderLineIdNumberTypeDescription{},
+		Alt:     map[string]HeaderLineIdDescription{},
+		Filter:  map[string]HeaderLineIdDescription{},
+		Contig:  []HeaderLineIdLength{},
+		Other:   []string{},
+		Samples: []string{},
+	}
 }
