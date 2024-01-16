@@ -136,7 +136,7 @@ func parseLine(
 		header.parse(line)
 	} else {
 		id := strings.Split(line, "\t")[2]
-		variant := createVariant(line, header)
+		variant := createVariant(line, header, Cctx)
 
 		// Convert breakends to breakpoints if the --to-breakpoint flag is set
 		if Cctx.Bool("to-breakpoint") && variant.Info["SVTYPE"][0] == "BND" && len(variant.Info["MATEID"]) == 1 {
@@ -157,7 +157,7 @@ func parseLine(
 }
 
 // Parse the line and add it to the Variant struct
-func createVariant(line string, header *Header) *Variant {
+func createVariant(line string, header *Header, Cctx *cli.Context) *Variant {
 	logger := log.New(os.Stderr, "", 0)
 
 	variant := new(Variant)
@@ -186,7 +186,7 @@ func createVariant(line string, header *Header) *Variant {
 		if len(split) > 1 {
 			value = split[1]
 		}
-		variant.Info[field] = parseInfoFormat(field, value, variant.Header.Info)
+		variant.Info[field] = parseInfoFormat(field, value, variant.Header.Info, Cctx)
 	}
 
 	variant.Format = map[string]VariantFormat{}
@@ -200,7 +200,7 @@ func createVariant(line string, header *Header) *Variant {
 		}
 		for idx, val := range strings.Split(value, ":") {
 			header := formatHeaders[idx]
-			variant.Format[sample].Content[header] = parseInfoFormat(header, val, variant.Header.Format)
+			variant.Format[sample].Content[header] = parseInfoFormat(header, val, variant.Header.Format, Cctx)
 		}
 	}
 
@@ -209,11 +209,13 @@ func createVariant(line string, header *Header) *Variant {
 }
 
 // Parse the value of the INFO or FORMAT field and return it as a slice of strings
-func parseInfoFormat(header string, value string, infoFormatLines map[string]HeaderLineIdNumberTypeDescription) []string {
+func parseInfoFormat(header string, value string, infoFormatLines map[string]HeaderLineIdNumberTypeDescription, Cctx *cli.Context) []string {
 	logger := log.New(os.Stderr, "", 0)
 	headerLine := infoFormatLines[header]
 	if headerLine == (HeaderLineIdNumberTypeDescription{}) {
-		logger.Printf("Field %s not found in header, defaulting to Type 'String' and Number '1'", header)
+		if !Cctx.Bool("mute-warnings") {
+			logger.Printf("Field %s not found in header, defaulting to Type 'String' and Number '1'", header)
+		}
 		headerLine = HeaderLineIdNumberTypeDescription{
 			Id:          header,
 			Number:      "1",

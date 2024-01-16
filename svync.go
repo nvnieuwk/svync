@@ -33,6 +33,12 @@ func main() {
 				Usage:    "Convert pairs of breakends to a single breakpoint variant. WARNING: this will cause some loss of data.",
 				Category: "Optional",
 			},
+			&cli.BoolFlag{
+				Name:     "mute-warnings",
+				Aliases:  []string{"mw"},
+				Usage:    "Mute all warnings.",
+				Category: "Optional",
+			},
 			&cli.StringFlag{
 				Name:     "config",
 				Aliases:  []string{"c"},

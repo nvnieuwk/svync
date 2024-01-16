@@ -102,7 +102,7 @@ func (variant *Variant) standardize(config *Config, Cctx *cli.Context, count int
 		}
 	}
 
-	standardizedVariant.Id = fmt.Sprintf("%s_%v", ResolveValue(config.Id, variant, nil), count)
+	standardizedVariant.Id = fmt.Sprintf("%s_%v", ResolveValue(config.Id, variant, nil, Cctx), count)
 
 	// Add info fields
 	for name, infoConfig := range config.Info {
@@ -114,7 +114,7 @@ func (variant *Variant) standardize(config *Config, Cctx *cli.Context, count int
 		if value == "" {
 			continue
 		}
-		standardizedVariant.Info[name] = []string{ResolveValue(value, variant, nil)}
+		standardizedVariant.Info[name] = []string{ResolveValue(value, variant, nil, Cctx)}
 	}
 
 	// Add format fields
@@ -127,7 +127,7 @@ func (variant *Variant) standardize(config *Config, Cctx *cli.Context, count int
 			if val, ok := formatConfig.Alts[sVType]; ok {
 				value = val
 			}
-			newFormat.Content[name] = []string{ResolveValue(value, variant, &format)}
+			newFormat.Content[name] = []string{ResolveValue(value, variant, &format, Cctx)}
 		}
 		standardizedVariant.Format[sample] = *newFormat
 	}
