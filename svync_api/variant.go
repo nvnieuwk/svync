@@ -2,9 +2,7 @@ package svync_api
 
 import (
 	"fmt"
-	"log"
 	"math"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -12,19 +10,20 @@ import (
 
 // Convert a breakend variant pair to one breakpoint
 func toBreakPoint(mate1 *Variant, mate2 *Variant) *Variant {
-	logger := log.New(os.Stderr, "", 0)
+
+	// Swap mates if the first one comes after the second one
+	if mate1.Chromosome == mate2.Chromosome && mate1.Pos > mate2.Pos {
+		mate1, mate2 = mate2, mate1
+	}
 
 	alt := mate1.Alt
-	altRegex := regexp.MustCompile(`(\[|\])(?P<chr>[^:]*):(?P<pos>[0-9]*)`)
-	altGroups := altRegex.FindStringSubmatch(alt)
-
 	chr := mate1.Chromosome
 	pos := mate1.Pos
-	chr2 := altGroups[2]
-	pos2, err := strconv.ParseInt(altGroups[3], 0, 64)
-	if err != nil {
-		logger.Fatalf("Couldn't convert string to integer: %v", err)
-	}
+	chr2 := mate2.Chromosome
+	pos2 := mate2.Pos
+
+	altRegex := regexp.MustCompile(`(\[|\])(?P<chr>[^:]*):(?P<pos>[0-9]*)`)
+	altGroups := altRegex.FindStringSubmatch(alt)
 	bracket := altGroups[1]
 	strand1 := ""
 	strand2 := ""
