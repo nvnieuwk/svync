@@ -129,14 +129,14 @@ func parseLine(
 ) {
 	if !strings.HasSuffix(line, "#") && !*headerIsMade {
 		writeHeader(config, Cctx, header, outputFile, stdout)
+		*headerIsMade = true
 	}
 
 	if strings.HasPrefix(line, "#") {
 		header.parse(line)
 	} else {
 		id := strings.Split(line, "\t")[2]
-		variant := createVariant(line)
-		variant.Header = header
+		variant := createVariant(line, header)
 
 		// Convert breakends to breakpoints if the --to-breakpoint flag is set
 		if Cctx.Bool("to-breakpoint") && variant.Info["SVTYPE"][0] == "BND" && len(variant.Info["MATEID"]) == 1 {
@@ -150,16 +150,18 @@ func parseLine(
 			}
 		}
 		*variantCount++
+		standardizeAndOutput(config, Cctx, variant, outputFile, stdout, *variantCount)
 
 		// Standardize and output the variant
 	}
 }
 
 // Parse the line and add it to the Variant struct
-func createVariant(line string) *Variant {
+func createVariant(line string, header *Header) *Variant {
 	logger := log.New(os.Stderr, "", 0)
 
-	variant := Variant{}
+	variant := new(Variant)
+	variant.Header = header
 
 	data := strings.Split(line, "\t")
 	variant.Chromosome = data[0]
@@ -202,7 +204,7 @@ func createVariant(line string) *Variant {
 		}
 	}
 
-	return &variant
+	return variant
 
 }
 
