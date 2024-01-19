@@ -27,12 +27,13 @@ func main() {
 				Usage:    "The location to the output VCF file, defaults to stdout",
 				Category: "Optional",
 			},
-			&cli.BoolFlag{
-				Name:     "to-breakpoint",
-				Aliases:  []string{"tb"},
-				Usage:    "Convert pairs of breakends to a single breakpoint variant. WARNING: this will cause some loss of data.",
-				Category: "Optional",
-			},
+			// TODO re-add this when conversion is implemented
+			// &cli.BoolFlag{
+			// 	Name:     "to-breakpoint",
+			// 	Aliases:  []string{"tb"},
+			// 	Usage:    "Convert pairs of breakends to a single breakpoint variant. WARNING: this will cause some loss of data.",
+			// 	Category: "Optional",
+			// },
 			&cli.BoolFlag{
 				Name:     "mute-warnings",
 				Aliases:  []string{"mw"},
@@ -42,7 +43,7 @@ func main() {
 			&cli.StringFlag{
 				Name:     "config",
 				Aliases:  []string{"c"},
-				Usage:    "Configuration file (YAML) to use for the parsing of INFO and FORMAT fields",
+				Usage:    "Configuration file (YAML) used for standardizing the VCF",
 				Required: true,
 				Category: "Required",
 			},

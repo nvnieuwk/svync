@@ -135,20 +135,21 @@ func parseLine(
 	if strings.HasPrefix(line, "#") {
 		header.parse(line)
 	} else {
-		id := strings.Split(line, "\t")[2]
+		// id := strings.Split(line, "\t")[2]
 		variant := createVariant(line, header, Cctx)
 
+		// TODO continue work on this later
 		// Convert breakends to breakpoints if the --to-breakpoint flag is set
-		if Cctx.Bool("to-breakpoint") && variant.Info["SVTYPE"][0] == "BND" && len(variant.Info["MATEID"]) == 1 {
-			mateid := variant.Info["MATEID"][0]
-			if mate, ok := (*breakEndVariants)[mateid]; ok {
-				variant = toBreakPoint(variant, &mate)
-				delete(*breakEndVariants, mateid)
-			} else {
-				(*breakEndVariants)[id] = *variant
-				return
-			}
-		}
+		// if Cctx.Bool("to-breakpoint") && variant.Info["SVTYPE"][0] == "BND" && len(variant.Info["MATEID"]) == 1 {
+		// 	mateid := variant.Info["MATEID"][0]
+		// 	if mate, ok := (*breakEndVariants)[mateid]; ok {
+		// 		variant = toBreakPoint(variant, &mate)
+		// 		delete(*breakEndVariants, mateid)
+		// 	} else {
+		// 		(*breakEndVariants)[id] = *variant
+		// 		return
+		// 	}
+		// }
 		*variantCount++
 		standardizeAndOutput(config, Cctx, variant, outputFile, stdout, *variantCount)
 
