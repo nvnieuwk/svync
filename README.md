@@ -18,6 +18,7 @@ svync --config <config.yaml> --input <input.vcf>
 | --- | --- | --- |
 | `--output`/`-o` | Path to the output VCF file | `stdout` |
 | `--nodate`/`--nd` | Do not add the date to the output VCF file | `false` |
+| `--mute-warnings`/`--mw` | Do not output warnings | `false` |
 
 ## Configuration
 The configuration file is the core of the standardization in Svync. More information can be found in the [configuration documentation](docs/configuration.md).
