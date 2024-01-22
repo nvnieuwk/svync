@@ -1,0 +1,36 @@
+# Test config for Delly SV caller
+id: "gridss_$INFO/SVTYPE"
+info:
+  CALLER:
+    value: gridss
+    description: SV caller
+    number: 1
+    type: string
+  CIPOS:
+    value: $INFO/CIPOS
+    description: Confidence interval around POS for imprecise variants
+    number: 2
+    type: Integer
+    alts:
+      BND:
+  CIEND:
+    value: $INFO/CIRPOS
+    description: Confidence interval around END position for imprecise variants
+    number: 2
+    type: Integer
+  SVLEN:
+    value: $INFO/SVLEN
+    description: The length of the structural variant
+    number: 1
+    type: Integer
+  IMPRECISE:
+    value: $INFO/IMPRECISE
+    description: Imprecise structural variation
+    number: 0
+    type: flag
+format:
+  GT:
+    value: ./.
+    description: Genotype
+    number: 1
+    type: string
