@@ -2,43 +2,28 @@ package svync_api
 
 import (
 	"fmt"
-	"log"
 	"math"
-	"os"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 )
 
 // Convert a breakend variant pair to one breakpoint
-func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
-	logger := log.New(os.Stderr, "", 0)
-	mateIds := variant.Info["MATEID"]
+func toBreakPoint(mate1 *Variant, mate2 *Variant) *Variant {
 
-	// Don't convert if less or more than 1 mate are found
-	if len(mateIds) == 0 || len(mateIds) > 1 {
-		return variant
+	// Swap mates if the first one comes after the second one
+	if mate1.Chromosome == mate2.Chromosome && mate1.Pos > mate2.Pos {
+		mate1, mate2 = mate2, mate1
 	}
 
-	mateId := mateIds[0]
-	mateVariant, ok := vcf.Variants[mateId]
-	if ok {
-		mateVariant.Parsed = true
-		vcf.Variants[mateId] = mateVariant
-	}
+	alt := mate1.Alt
+	chr := mate1.Chromosome
+	pos := mate1.Pos
+	chr2 := mate2.Chromosome
+	pos2 := mate2.Pos
 
-	alt := variant.Alt
 	altRegex := regexp.MustCompile(`(\[|\])(?P<chr>[^:]*):(?P<pos>[0-9]*)`)
 	altGroups := altRegex.FindStringSubmatch(alt)
-
-	chr := variant.Chromosome
-	pos := variant.Pos
-	chr2 := altGroups[2]
-	pos2, err := strconv.ParseInt(altGroups[3], 0, 64)
-	if err != nil {
-		logger.Fatalf("Couldn't convert string to integer: %v", err)
-	}
 	bracket := altGroups[1]
 	strand1 := ""
 	strand2 := ""
@@ -56,12 +41,12 @@ func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
 	}
 
 	filter := "."
-	if variant.Filter == mateVariant.Filter {
-		filter = variant.Filter
+	if mate1.Filter == mate2.Filter {
+		filter = mate1.Filter
 	}
 
-	varQual, err := strconv.ParseFloat(variant.Qual, 64)
-	mateQual, err := strconv.ParseFloat(mateVariant.Qual, 64)
+	varQual, err := strconv.ParseFloat(mate1.Qual, 64)
+	mateQual, err := strconv.ParseFloat(mate2.Qual, 64)
 	qual := "."
 	if err == nil {
 		qual = fmt.Sprintf("%f", (varQual+mateQual)/2)
@@ -70,13 +55,13 @@ func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
 	breakpointVariant := &Variant{
 		Chromosome: chr,
 		Pos:        pos,
-		Id:         variant.Id,
-		Ref:        variant.Ref,
+		Id:         mate1.Id,
+		Ref:        mate1.Ref,
 		Filter:     filter,
 		Qual:       qual,
-		Header:     variant.Header,
-		Info:       variant.Info,
-		Format:     variant.Format,
+		Header:     mate1.Header,
+		Info:       mate1.Info,
+		Format:     mate1.Format,
 	}
 
 	breakpointVariant.Info["END"] = []string{fmt.Sprint(pos2)}
@@ -102,14 +87,10 @@ func (variant *Variant) toBreakPoint(vcf *VCF) *Variant {
 		svlen = strconv.FormatFloat(-math.Abs(float64(pos2-pos)), 'g', -1, 64)
 	}
 
-	if svtype != "" {
-		breakpointVariant.Alt = svtype
-		breakpointVariant.Info["SVTYPE"] = []string{svtype}
-		breakpointVariant.Info["SVLEN"] = []string{svlen}
-		return breakpointVariant
-	}
-
-	return variant
+	breakpointVariant.Alt = svtype
+	breakpointVariant.Info["SVTYPE"] = []string{svtype}
+	breakpointVariant.Info["SVLEN"] = []string{svlen}
+	return breakpointVariant
 }
 
 // Get the length of an insertion
@@ -118,74 +99,4 @@ func getInsLen(alt string, strand string, bracket string) int {
 		return len(alt[strings.LastIndex(alt, bracket):])
 	}
 	return len(alt[:strings.LastIndex(alt, bracket)])
-}
-
-// Convert a breakpoint to variant to its breakend pairs
-//
-// Determining the ALT fields is impossible for breakpoint -> breakend conversion
-func (variant *Variant) toBreakEnd() (*Variant, *Variant) {
-	logger := log.New(os.Stderr, "", 0)
-
-	id1 := variant.Id + "_01"
-	id2 := variant.Id + "_02"
-
-	end, err := strconv.ParseInt(variant.Info["END"][0], 0, 64)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	chr := variant.Chromosome
-	chr2 := ""
-	chrom2, ok := variant.Info["CHR2"]
-	if !ok {
-		chr2 = variant.Chromosome
-	} else {
-		chr2 = chrom2[0]
-	}
-
-	info1 := map[string][]string{}
-	info2 := map[string][]string{}
-	for name, info := range variant.Info {
-		if slices.Contains([]string{"CHR2", "END", "SVLEN"}, name) {
-			continue
-		}
-		info1[name] = info
-		info2[name] = info
-	}
-
-	info1["SVTYPE"] = []string{"BND"}
-	info2["SVTYPE"] = []string{"BND"}
-	info1["MATEID"] = []string{id2}
-	info2["MATEID"] = []string{id1}
-
-	alt1 := "."
-	alt2 := "."
-
-	breakend1 := &Variant{
-		Chromosome: chr,
-		Pos:        variant.Pos,
-		Id:         id1,
-		Alt:        alt1,
-		Ref:        variant.Ref,
-		Qual:       variant.Qual,
-		Filter:     variant.Filter,
-		Header:     variant.Header,
-		Info:       info1,
-		Format:     variant.Format,
-	}
-
-	breakend2 := &Variant{
-		Chromosome: chr2,
-		Pos:        end,
-		Id:         id2,
-		Alt:        alt2,
-		Ref:        "N", // TODO find a good way to determine the breakend2 REF
-		Qual:       variant.Qual,
-		Filter:     variant.Filter,
-		Header:     variant.Header,
-		Info:       info2,
-		Format:     variant.Format,
-	}
-
-	return breakend1, breakend2
 }

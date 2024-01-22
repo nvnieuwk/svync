@@ -2,7 +2,6 @@ package svync_api
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"regexp"
 	"sort"
@@ -14,21 +13,7 @@ import (
 	"golang.org/x/text/language"
 )
 
-// Standardize the VCF file and write it to the output file
-func (vcf *VCF) StandardizeAndOutput(config *Config, Cctx *cli.Context) {
-	logger := log.New(os.Stderr, "", 0)
-	stdout := true
-	var file *os.File
-	var err error
-	if Cctx.String("output") != "" {
-		stdout = false
-		file, err = os.Create(Cctx.String("output"))
-		if err != nil {
-			logger.Fatalf("Failed to create the output file: %v", err)
-		}
-		defer file.Close()
-	}
-
+func writeHeader(config *Config, Cctx *cli.Context, header *Header, file *os.File, stdout bool) {
 	// VCF version
 	writeLine("##fileformat=VCFv4.2", file, stdout)
 
@@ -42,7 +27,7 @@ func (vcf *VCF) StandardizeAndOutput(config *Config, Cctx *cli.Context) {
 	descriptionRegex := regexp.MustCompile(`["']?([^"']*)["']?`)
 
 	// ALT header lines
-	for _, alt := range vcf.Header.Alt {
+	for _, alt := range header.Alt {
 		altId := alt.Id
 		if newAlt, ok := config.Alt[altId]; ok {
 			altId = newAlt
@@ -53,7 +38,7 @@ func (vcf *VCF) StandardizeAndOutput(config *Config, Cctx *cli.Context) {
 	}
 
 	// FILTER header lines
-	for _, filter := range vcf.Header.Filter {
+	for _, filter := range header.Filter {
 		description := descriptionRegex.FindStringSubmatch(filter.Description)[1]
 		filterLine := fmt.Sprintf("##FILTER=<ID=%s,Description=\"%s\">", filter.Id, description)
 		writeLine(filterLine, file, stdout)
@@ -76,39 +61,24 @@ func (vcf *VCF) StandardizeAndOutput(config *Config, Cctx *cli.Context) {
 	}
 
 	// Write the contig fields
-	for _, contig := range vcf.Header.Contig {
+	for _, contig := range header.Contig {
 		contigLine := fmt.Sprintf("##contig=<ID=%s,length=%d>", contig.Id, contig.Length)
 		writeLine(contigLine, file, stdout)
 	}
 
 	// Write the column headers
 	columnHeaders := []string{"#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT"}
-	columnHeaders = append(columnHeaders, vcf.Header.Samples...)
+	columnHeaders = append(columnHeaders, header.Samples...)
 	writeLine(strings.Join(columnHeaders, "\t"), file, stdout)
+}
 
-	// Write the variants
-	variantCount := 0
-	for _, variant := range vcf.Variants {
-		// Standardize the variant
-		if variant.Parsed {
-			continue
-		}
-		line := ""
-		if Cctx.String("notation") == "breakpoint" {
-			if variant.Info["SVTYPE"][0] == "BND" {
-				line = variant.toBreakPoint(vcf).standardize(config, Cctx, variantCount).String(config)
-			} else {
-				line = variant.standardize(config, Cctx, variantCount).String(config)
-			}
-		} else if Cctx.String("notation") == "breakend" {
-			variant1, variant2 := variant.standardize(config, Cctx, variantCount).toBreakEnd()
-			line = variant1.String(config) + "\n" + variant2.String(config)
-		} else {
-			line = variant.standardize(config, Cctx, variantCount).String(config)
-		}
-		variantCount++
-		writeLine(line, file, stdout)
-	}
+// Standardize the VCF file and write it to the output file
+func standardizeAndOutput(config *Config, Cctx *cli.Context, variant *Variant, file *os.File, stdout bool, variantCount int) {
+
+	// Standardize the variant
+	line := variant.standardize(config, Cctx, variantCount).String(config)
+	writeLine(line, file, stdout)
+
 }
 
 // Standardize the variant using the config
@@ -132,7 +102,7 @@ func (variant *Variant) standardize(config *Config, Cctx *cli.Context, count int
 		}
 	}
 
-	standardizedVariant.Id = fmt.Sprintf("%s_%v", ResolveValue(config.Id, variant, nil), count)
+	standardizedVariant.Id = fmt.Sprintf("%s_%v", ResolveValue(config.Id, variant, nil, Cctx), count)
 
 	// Add info fields
 	for name, infoConfig := range config.Info {
@@ -144,7 +114,7 @@ func (variant *Variant) standardize(config *Config, Cctx *cli.Context, count int
 		if value == "" {
 			continue
 		}
-		standardizedVariant.Info[name] = []string{ResolveValue(value, variant, nil)}
+		standardizedVariant.Info[name] = []string{ResolveValue(value, variant, nil, Cctx)}
 	}
 
 	// Add format fields
@@ -157,7 +127,7 @@ func (variant *Variant) standardize(config *Config, Cctx *cli.Context, count int
 			if val, ok := formatConfig.Alts[sVType]; ok {
 				value = val
 			}
-			newFormat.Content[name] = []string{ResolveValue(value, variant, &format)}
+			newFormat.Content[name] = []string{ResolveValue(value, variant, &format, Cctx)}
 		}
 		standardizedVariant.Format[sample] = *newFormat
 	}

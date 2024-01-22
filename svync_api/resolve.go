@@ -7,10 +7,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	cli "github.com/urfave/cli/v2"
 )
 
 // Resolve a value
-func ResolveValue(input string, variant *Variant, format *VariantFormat) string {
+func ResolveValue(input string, variant *Variant, format *VariantFormat, Cctx *cli.Context) string {
 	logger := log.New(os.Stderr, "", 0)
 
 	// Replace all the FORMAT fields
@@ -27,7 +29,9 @@ func ResolveValue(input string, variant *Variant, format *VariantFormat) string 
 
 		// TODO implement some alternative way to handle missing fields
 		if !ok {
-			logger.Printf("The field %s is not present in the FORMAT fields of the variant with ID %s, excluding it from this variant", field, variant.Id)
+			if !Cctx.Bool("mute-warnings") {
+				logger.Printf("The field %s is not present in the FORMAT fields of the variant with ID %s, excluding it from this variant", field, variant.Id)
+			}
 		} else if len(fieldSlice) > 2 {
 			index, err := strconv.ParseInt(fieldSlice[2], 0, 64)
 			if err != nil {
@@ -50,7 +54,7 @@ func ResolveValue(input string, variant *Variant, format *VariantFormat) string 
 		// TODO implement some alternative way to handle missing fields
 		if !ok {
 			infoType := variant.Header.Info[field].Type
-			if infoType != "Flag" {
+			if infoType != "Flag" && !Cctx.Bool("mute-warnings") {
 				logger.Printf("The field %s is not present in the INFO fields of the variant with ID %s, excluding it from this variant", field, variant.Id)
 			}
 		} else if len(fieldSlice) > 2 {

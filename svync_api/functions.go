@@ -39,7 +39,7 @@ func resolveFunction(input string, token string) string {
 	case "len":
 		result += fmt.Sprint(len(value[0]))
 	default:
-		logger.Fatalf("The function '%s' is not supported", value[1:])
+		logger.Fatalf("The function '%s' is not supported", function)
 	}
 	return result
 }
