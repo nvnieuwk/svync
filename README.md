@@ -18,7 +18,6 @@ svync --config <config.yaml> --input <input.vcf>
 | --- | --- | --- |
 | `--output`/`-o` | Path to the output VCF file | `stdout` |
 | `--nodate`/`--nd` | Do not add the date to the output VCF file | `false` |
-| `--notation`/`-n` | The notation to use for the output VCF file. Must be one of: breakpoint, breakend. | none |
 
 ## Configuration
 The configuration file is the core of the standardization in Svync. More information can be found in the [configuration documentation](docs/configuration.md).
