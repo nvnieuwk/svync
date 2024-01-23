@@ -13,7 +13,7 @@ func main() {
 		Name:            "svync",
 		Usage:           "A tool to standardize VCF files from structural variant callers",
 		HideHelpCommand: true,
-		Version:         "0.2.0dev",
+		Version:         "0.1.1",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:     "nodate",
