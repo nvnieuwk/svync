@@ -91,6 +91,11 @@ func Execute(Cctx *cli.Context, config *Config) {
 		}
 	}
 
+	if !headerIsMade {
+		writeHeader(config, Cctx, header, outputFile, stdout)
+		headerIsMade = true
+	}
+
 }
 
 // readBgzipLine reads a line from a bgzip file
