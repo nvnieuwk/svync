@@ -127,14 +127,13 @@ func parseLine(
 	stdout bool,
 	variantCount *int,
 ) {
-	if !strings.HasSuffix(line, "#") && !*headerIsMade {
-		writeHeader(config, Cctx, header, outputFile, stdout)
-		*headerIsMade = true
-	}
-
 	if strings.HasPrefix(line, "#") {
 		header.parse(line)
 	} else {
+		if !*headerIsMade {
+			writeHeader(config, Cctx, header, outputFile, stdout)
+			*headerIsMade = true
+		}
 		// id := strings.Split(line, "\t")[2]
 		variant := createVariant(line, header, Cctx)
 
