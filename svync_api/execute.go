@@ -20,10 +20,10 @@ func Execute(Cctx *cli.Context, config *Config) {
 
 	file := Cctx.String("input")
 	inputVcf, err := os.Open(file)
-	defer inputVcf.Close()
 	if err != nil {
 		logger.Fatal(err)
 	}
+	defer inputVcf.Close()
 	header := newHeader()
 	breakEndVariants := &map[string]Variant{}
 	headerIsMade := false

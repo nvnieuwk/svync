@@ -79,7 +79,10 @@ func (config *Config) defineMissing() {
 	// Format fields
 	if _, ok := config.Format["GT"]; !ok {
 		config.Format["GT"] = ConfigInput{
-			Value:       "$FORMAT/GT",
+			Value: "$FORMAT/GT",
+			Defaults: map[string]string{
+				"$FORMAT/GT": "./.",
+			},
 			Number:      "1",
 			Type:        "String",
 			Description: "Genotype",
