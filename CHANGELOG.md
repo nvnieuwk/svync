@@ -1,3 +1,6 @@
+# 0.2.0dev
+- Added the `defaults` type to the `info` and `format` configuration. Defaults for resolvable fields can be set this way.
+
 # 0.1.2 - Adjust
 ## Fixes
 - Fixed a bug where the output VCF has no header when the input VCF has no variants
