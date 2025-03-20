@@ -62,6 +62,7 @@ type Config struct {
 type MapConfigInput map[string]ConfigInput
 type ConfigInput struct {
 	Value       string
+	Defaults    map[string]string
 	Description string
 	Number      string
 	Type        string

@@ -41,6 +41,9 @@ info:
 ### value
 The `value` field can be used to change the default value of the info field. The value can be resolved (see [Resolvable fields](#resolvable-fields)).
 
+### defaults
+The `defaults` field can be used to define defaults for resolvable `INFO` and `FORMAT` fields. These defaults will be used when the required field is missing from the variant. 
+
 ### type
 The `type` field can be used to set the type of the info field (This will be reflected in the header of the output VCF file).
 
@@ -58,6 +61,8 @@ For example when all `SVLEN` info fields are positive, you maybe want to change 
 info:
   SVLEN:
     value: $INFO/SVLEN
+    defaults:
+      $INFO/SVLEN: "-1"
     type: Integer
     description: "Structural variant length"
     number: 1
@@ -71,6 +76,9 @@ The `format` section can be used to change the format fields for each variant. T
 format:
   <format_field>:
     value: <new_value>
+    defaults:
+      <resolvable-field>: <default>
+      <resolvable-field>: <default>
     type: <new_type>
     description: <new_description>
     number: <new_number>

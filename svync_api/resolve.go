@@ -12,7 +12,7 @@ import (
 )
 
 // Resolve a value
-func ResolveValue(input string, variant *Variant, format *VariantFormat, Cctx *cli.Context) string {
+func ResolveValue(input string, variant *Variant, format *VariantFormat, Cctx *cli.Context, config *Config) string {
 	logger := log.New(os.Stderr, "", 0)
 
 	// Replace all the FORMAT fields
@@ -21,16 +21,19 @@ func ResolveValue(input string, variant *Variant, format *VariantFormat, Cctx *c
 	if len(allFormats) > 0 && format == nil {
 		logger.Fatalf("Cannot use a FORMAT field in a non-FORMAT context, please check your config file")
 	}
-	for _, stringToReplace := range allFormats {
-		fieldSlice := strings.Split(stringToReplace, "/")
+	for _, rawField := range allFormats {
+		fieldSlice := strings.Split(rawField, "/")
 
 		field := fieldSlice[1]
 		formatValue, ok := format.Content[field]
 
-		// TODO implement some alternative way to handle missing fields
 		if !ok {
-			if !Cctx.Bool("mute-warnings") {
-				logger.Printf("The field %s is not present in the FORMAT fields of the variant with ID %s, excluding it from this variant", field, variant.Id)
+			// Check if the field is a default value
+			defaults := config.Format[field].Defaults
+			if defaultValue, ok := defaults[rawField]; ok {
+				formatValue = []string{defaultValue}
+			} else if !Cctx.Bool("mute-warnings") {
+				logger.Printf("The field %s is not present in the FORMAT fields of the variant with ID %s, excluding it from this variant. Supply a default to mute this warning", field, variant.Id)
 			}
 		} else if len(fieldSlice) > 2 {
 			index, err := strconv.ParseInt(fieldSlice[2], 0, 64)
@@ -39,23 +42,26 @@ func ResolveValue(input string, variant *Variant, format *VariantFormat, Cctx *c
 			}
 			formatValue = []string{formatValue[index]}
 		}
-		input = strings.ReplaceAll(input, stringToReplace, strings.Join(formatValue, ","))
+		input = strings.ReplaceAll(input, rawField, strings.Join(formatValue, ","))
 	}
 
 	// Replace all the INFO fields
 	infoRegex := regexp.MustCompile(`\$INFO/[\w\d]+(/\d+)?`)
 	allInfos := infoRegex.FindAllString(input, -1)
-	for _, stringToReplace := range allInfos {
-		fieldSlice := strings.Split(stringToReplace, "/")
+	for _, rawField := range allInfos {
+		fieldSlice := strings.Split(rawField, "/")
 
 		field := fieldSlice[1]
 		info, ok := variant.Info[field]
 
-		// TODO implement some alternative way to handle missing fields
 		if !ok {
+			// Check if the field is a default value
+			defaults := config.Info[field].Defaults
 			infoType := variant.Header.Info[field].Type
-			if infoType != "Flag" && !Cctx.Bool("mute-warnings") {
-				logger.Printf("The field %s is not present in the INFO fields of the variant with ID %s, excluding it from this variant", field, variant.Id)
+			if defaultValue, ok := defaults[rawField]; ok {
+				info = []string{defaultValue}
+			} else if infoType != "Flag" && !Cctx.Bool("mute-warnings") {
+				logger.Printf("The field %s is not present in the FORMAT fields of the variant with ID %s, excluding it from this variant. Supply a default to mute this warning", field, variant.Id)
 			}
 		} else if len(fieldSlice) > 2 {
 			index, err := strconv.ParseInt(fieldSlice[2], 0, 64)
@@ -64,7 +70,7 @@ func ResolveValue(input string, variant *Variant, format *VariantFormat, Cctx *c
 			}
 			info = []string{info[index]}
 		}
-		input = strings.ReplaceAll(input, stringToReplace, strings.Join(info, ","))
+		input = strings.ReplaceAll(input, rawField, strings.Join(info, ","))
 	}
 
 	// Replace POS fields
