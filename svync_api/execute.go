@@ -307,15 +307,17 @@ func convertLineToMap(line string) map[string]string {
 	key := ""
 	quote := ""
 	for _, letter := range strings.Split(line, "") {
-		if letter == "=" {
-			key = strings.ToLower(word)
-			word = ""
-			continue
-		} else if letter == "," && quote == "" {
-			data[key] = word
-			key = ""
-			word = ""
-			continue
+		if quote == "" {
+			if letter == "=" {
+				key = strings.ToLower(word)
+				word = ""
+				continue
+			} else if letter == "," && quote == "" {
+				data[key] = word
+				key = ""
+				word = ""
+				continue
+			}
 		}
 
 		word += letter

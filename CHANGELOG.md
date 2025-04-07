@@ -1,8 +1,12 @@
-# 0.2.0dev
+# 0.2.0 Improve
 
 ## New features
 
-- Added the `defaults` type to the `info` and `format` configuration. Defaults for resolvable fields can be set this way.
+- Added the `defaults` type to the `info` and `format` configuration. Defaults for resolvable fields can be set this way
+
+## Fixes
+
+- Fixed issues parsing header descriptions that contained `=`
 
 # 0.1.2 - Adjust
 
