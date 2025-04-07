@@ -45,10 +45,10 @@ func toBreakPoint(mate1 *Variant, mate2 *Variant) *Variant {
 		filter = mate1.Filter
 	}
 
-	varQual, err := strconv.ParseFloat(mate1.Qual, 64)
-	mateQual, err := strconv.ParseFloat(mate2.Qual, 64)
+	varQual, err1 := strconv.ParseFloat(mate1.Qual, 64)
+	mateQual, err2 := strconv.ParseFloat(mate2.Qual, 64)
 	qual := "."
-	if err == nil {
+	if err1 == nil && err2 == nil {
 		qual = fmt.Sprintf("%f", (varQual+mateQual)/2)
 	}
 

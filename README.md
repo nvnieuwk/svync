@@ -26,16 +26,16 @@ The configuration file is the core of the standardization in Svync. More informa
 
 ## Installation
 ### Mamba/Conda
-This is the preffered way of installing BedGoVcf.
+This is the preferred way of installing Svync.
 
 ```bash
-mamba install -c bioconda bedgovcf
+mamba install -c bioconda svync
 ```
 
 or with conda:
   
 ```bash 
-conda install -c bioconda bedgovcf
+conda install -c bioconda svync
 ```
 
 ### Precompiled binaries
@@ -45,17 +45,17 @@ Precompiled binaries are available for Linux and macOS on the [releases page](ht
 ### Installation from source
 Make sure you have go installed on your machine (or [install](https://go.dev/doc/install) it if you don't currently have it)
 
-Then run these commands to install bedgovcf:
+Then run these commands to install svync:
 
 ```bash
 go get .
 go build .
-sudo mv bedgovcf /usr/local/bin/
+sudo mv svync /usr/local/bin/
 ```
 
 Next run this command to check if it was correctly installed:
 
 ```bash
-bedgovcf --help
+svync --help
 ```
 
