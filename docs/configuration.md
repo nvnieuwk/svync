@@ -13,17 +13,27 @@ id: <id>
 The value for the ID can be resolved (see [Resolvable fields](#resolvable-fields)). All IDs get a unique number appended to them to ensure that they are unique.
 
 ## `alt`
-The `alt` section can be used to change the ALT field and SVTYPE info field for each variant. The `alt` section can be defined as follows:
+The `alt` section can be used to change the ALT field field for each variant. The `alt` section can be defined as follows:
 ```yaml
 alt:
-  <alt>: <new_alt>
+  value: <new_value>
+  alts:
+    <alt>: <new_value>
 ```
 
-For example you might want to change the `BND` ALT to `TRA` (for Delly for example):
+For example you might want to change the `BND` ALT to `TRA` (for Delly for example) and set the alt field to the SVTYPE instead of the sequence:
 ```yaml
 alt:
-  BND: TRA
+  alts:
+    BND: <TRA>
+  value: <$INFO/SVTYPE>
 ```
+
+### value
+The `value` field can be used to set the value of the ALT field. The value can be resolved (see [Resolvable fields](#resolvable-fields)). If the value is not set, the default value will be the value of the ALT field in the input VCF file.
+
+### alts
+The `alts` field can be used to set the value of the ALT field for a specific ALT. The value can be resolved (see [Resolvable fields](#resolvable-fields)).
 
 ## `info`
 The `info` section can be used to change the info fields for each variant. The `info` section can be defined as follows:
