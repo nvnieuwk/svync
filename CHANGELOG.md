@@ -1,3 +1,9 @@
+# 0.3.0 - Refactor
+
+## New features
+
+- Introduced flexible configuration for ALT field handling. This causes a breaking change with older versions of Svync. 
+
 # 0.2.0 Improve
 
 ## New features

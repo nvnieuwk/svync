@@ -128,13 +128,23 @@ type Config struct {
 
 	// How to handle the ALT field of each variant
 	// A value can be given for each SVTYPE
-	Alt map[string]string
+	Alt ConfigSimpleInput
 
 	// How to handle the INFO fields of each variant
 	Info MapConfigInput
 
 	// How to handle the FORMAT fields of each variant
 	Format MapConfigInput
+}
+
+// A struct representing a simple configuration of a field
+type ConfigSimpleInput struct {
+	// The value of the field
+	// This can be a string or a reference to another field
+	Value string
+
+	// Alternative values for each SVTYPE
+	Alts map[string]string
 }
 
 // A map construct for advanced configurations

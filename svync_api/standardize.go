@@ -29,7 +29,7 @@ func writeHeader(config *Config, Cctx *cli.Context, header *Header, file *os.Fil
 	// ALT header lines
 	for _, alt := range header.Alt {
 		altId := alt.Id
-		if newAlt, ok := config.Alt[altId]; ok {
+		if newAlt, ok := config.Alt.Alts[altId]; ok {
 			altId = newAlt
 		}
 		description := descriptionRegex.FindStringSubmatch(alt.Description)[1]
@@ -94,12 +94,14 @@ func (variant *Variant) standardize(config *Config, Cctx *cli.Context, count int
 
 	sVType := variant.Info["SVTYPE"][0]
 
-	if config.Alt != nil {
-		if alt, ok := config.Alt[sVType]; ok {
-			sVType = alt
-			standardizedVariant.Alt = "<" + alt + ">"
-			variant.Info["SVTYPE"] = []string{alt}
+	if config.Alt.Alts != nil {
+		if alt, ok := config.Alt.Alts[sVType]; ok {
+			standardizedVariant.Alt = ResolveValue(alt, variant, nil, Cctx, config)
 		}
+	}
+
+	if config.Alt.Value != "" {
+		standardizedVariant.Alt = ResolveValue(config.Alt.Value, variant, nil, Cctx, config)
 	}
 
 	standardizedVariant.Id = fmt.Sprintf("%s_%v", ResolveValue(config.Id, variant, nil, Cctx, config), count)
